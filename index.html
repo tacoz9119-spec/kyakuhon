@@ -141,19 +141,19 @@ main{flex:1 1 auto;min-width:0;padding-left:max(16px,env(safe-area-inset-left,0p
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 
 .page{position:relative;flex:0 0 auto;background:var(--paper);box-shadow:var(--shadow);cursor:text;
-  width:calc(var(--pad)*2 + var(--step)*19 + var(--cell));height:calc(var(--pad) + var(--cell)*23)}
+  width:calc(var(--padx,var(--pad))*2 + var(--step)*19 + var(--cell));height:calc(var(--pad) + var(--cell)*23)}
 .frame{position:absolute;pointer-events:none;border:1.5px solid var(--rule);
-  top:calc(var(--pad) - 5px);right:calc(var(--pad) - 5px);
+  top:calc(var(--pad) - 5px);right:calc(var(--padx,var(--pad)) - 5px);
   width:calc(var(--step)*19 + var(--cell) + 7px);height:calc(var(--cell)*20 + 7px)}
 .col{position:absolute;top:var(--pad);width:var(--cell);height:calc(var(--cell)*20);
-  right:calc(var(--pad) + var(--c)*var(--step));
+  right:calc(var(--padx,var(--pad)) + var(--c)*var(--step));
   box-shadow:inset 0 0 0 1px var(--rule-soft);
   background-image:linear-gradient(to bottom,var(--rule-soft) 1px,transparent 1px);background-size:100% var(--cell)}
 .pno{position:absolute;left:0;right:0;text-align:center;top:calc(var(--pad) + var(--cell)*21.4);
   font-size:max(11px,calc(var(--cell)*.4));color:var(--muted);font-variant-numeric:tabular-nums}
 
 .ch{position:absolute;width:var(--cell);height:var(--cell);
-  right:calc(var(--pad) + var(--c)*var(--step));top:calc(var(--pad) + var(--r)*var(--cell));
+  right:calc(var(--padx,var(--pad)) + var(--c)*var(--step));top:calc(var(--pad) + var(--r)*var(--cell));
   writing-mode:vertical-rl;text-orientation:mixed;display:flex;align-items:center;justify-content:center;
   font-family:var(--f-text);font-size:calc(var(--cell)*.78*var(--fs,1));line-height:1;color:var(--ink);pointer-events:none}
 .ch.up{text-orientation:upright}
@@ -413,7 +413,7 @@ const SAMPLE_TITLE='灯台（仮）';
 const $=id=>document.getElementById(id);
 const sheets=$('sheets'), caretEl=$('caret'), ta=$('ta'), titleIn=$('title'), selLayer=$('sel'), hitsLayer=$('hits');
 let doc=[], types=['hashira'], pids=[1], pidSeq=1, memos={}, cover=false, caret=0, title='', curId=null;
-let L=null, P=[], CELL=30, G=null;
+let L=null, P=[], CELL=30, PADX=30, G=null;
 let undo=[], redo=[], lastKind='', lastT=0, composing=false, changed=false;
 let anchor=null, dragging=false, mouseClick=false, clipPrep=false;
 const pages=[]; let coverEl=null;
@@ -735,8 +735,8 @@ function posLabel(c){
 }
 
 /* ---------- geometry ---------- */
-function geo(){ const cell=CELL; return {cell,step:cell*1.22,pad:cell,W:cell*2+cell*1.22*19+cell}; }
-function colRight(lc){ return G.pad+lc*G.step; }
+function geo(){ const cell=CELL; return {cell,step:cell*1.22,pad:cell,padx:PADX,W:PADX*2+cell*1.22*19+cell}; }
+function colRight(lc){ return G.padx+lc*G.step; }
 const zoom='fit';  /* 常に1ページ全体を表示領域に収める */
 function viewH(){ return window.innerHeight; }  /* 画面キーボードの出し入れで縮まないよう、表示領域全体の高さを使う */
 /* 文字の大きさ（この端末に記憶）：マス目の大きさはそのままで、マスの中の文字だけを大・中・小で変える */
@@ -751,6 +751,10 @@ function resize(){
   const byW=avail/(2+1.22*19+1);
   const byH=(viewH()-barH-24)/24;   /* ページの高さ＝余白1マス＋20行＋ぶら下げ・ページ番号3マス */
   CELL=Math.max(10,Math.min(56,Math.floor(Math.min(byW,byH)*10)/10));
+  /* 左右の余白：画面の幅に余裕があれば、原稿用紙の左右に最大3マス分の余白を取る（マス目の大きさは変えない） */
+  const gridW=CELL*(1.22*19+1);
+  PADX=Math.round(Math.min(CELL*3,Math.max(CELL,(avail-gridW)/2-12))*10)/10;
+  root.style.setProperty('--padx',PADX+'px');
   root.style.setProperty('--fs',String(SIZE_SCALE[sizeKey]||1));
   root.style.setProperty('--cell',CELL+'px');
   root.classList.add('fit');
