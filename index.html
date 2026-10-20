@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
 <style>
-/* 画面用のフォント（縦書き用の字形の情報入り）。PDFには別のファイル（notoserifjp-300.ttf）を使う */
+/* 画面用のフォント（縦書き用の字形の情報入り）。PDFには別のファイル（notoserifjp-300-pdf.ttf。Macのプレビューでも表示できるよう、不要な情報を整理したもの）を使う */
 @font-face{font-family:"Noto Serif JP";src:url("notoserifjp-300-screen.woff2") format("woff2");font-weight:400 700;font-display:swap}
 :root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0;font-size:14px}
@@ -1490,14 +1490,14 @@ function loadScript(src){ return new Promise((res,rej)=>{ const s=document.creat
 async function ensurePdfKit(){
   if(!(window.jspdf&&window.jspdf.jsPDF)) await loadScript('jspdf.umd.min.js');
   if(!fontB64){
-    const resp=await fetch('notoserifjp-300.ttf'); if(!resp.ok) throw new Error('font');
+    const resp=await fetch('notoserifjp-300-pdf.ttf'); if(!resp.ok) throw new Error('font');
     const blob=await resp.blob();
     fontB64=await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(',')[1]); r.onerror=rej; r.readAsDataURL(blob); });
   }
 }
 function buildPdf(){
   const pdf=new window.jspdf.jsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true});
-  pdf.addFileToVFS('notoserifjp-300.ttf',fontB64); pdf.addFont('notoserifjp-300.ttf','Mincho','normal','Identity-H'); pdf.setFont('Mincho','normal');
+  pdf.addFileToVFS('notoserifjp-300-pdf.ttf',fontB64); pdf.addFont('notoserifjp-300-pdf.ttf','Mincho','normal','Identity-H'); pdf.setFont('Mincho','normal');
   pdf.setProperties({title:title||'無題'});
   /* 文字は約16pt（マス6.88mm）。20字分の高さを上下中央に置き、左右は行間で全体の横幅（198.3mm）を保つ */
   const PW=297, PH=210, cs=6.88, gridW=198.3, step=(gridW-cs)/(PER-1), top=(PH-ROWS*cs)/2, right=(PW+gridW)/2;
