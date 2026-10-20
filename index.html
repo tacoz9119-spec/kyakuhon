@@ -212,6 +212,9 @@ html.nopno .pno{display:none}
 
 #sizeSel button{min-width:64px}
 #sizeSel button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+
+#bGrid[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+html.nogrid .col,html.nogrid .frame{display:none}
 </style>
 <script src="firebase-config.js"></script>
 <script src="firebase.js"></script>
@@ -230,6 +233,7 @@ html.nopno .pno{display:none}
     <button id="bUndo" type="button" disabled>元に戻す</button>
     <button id="bRedo" type="button" disabled>やり直す</button>
     <span class="sep"></span>
+    <button id="bGrid" type="button" aria-pressed="true" title="原稿用紙のマス目を表示・非表示">マス目</button>
     <button id="bDocs" type="button">その他</button>
   </div>
   <div class="stats" aria-live="polite">
@@ -1587,6 +1591,12 @@ $('sizeSel').addEventListener('click',e=>{
   applySizeUI(); resize();
 });
 applySizeUI();
+/* 原稿用紙のマス目の表示・非表示（この端末に記憶）。文字の位置は変わらない */
+let showGrid=true;
+try{ showGrid=localStorage.getItem('genko-grid')!=='0'; }catch(e){}
+function applyGrid(){ document.documentElement.classList.toggle('nogrid',!showGrid); $('bGrid').setAttribute('aria-pressed',String(showGrid)); }
+$('bGrid').addEventListener('click',()=>{ showGrid=!showGrid; try{ localStorage.setItem('genko-grid',showGrid?'1':'0'); }catch(e){} applyGrid(); refocus(); });
+applyGrid();
 
 /* ---------- 起動 ---------- */
 async function boot(){
