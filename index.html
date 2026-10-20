@@ -13,8 +13,8 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
 <style>
-/* 画面用のフォント（縦書き用の字形の情報入り）。PDFには別のファイル（notoserifjp.ttf）を使う */
-@font-face{font-family:"Noto Serif JP";src:url("notoserifjp-screen.woff2") format("woff2");font-weight:400 700;font-display:swap}
+/* 画面用のフォント（縦書き用の字形の情報入り）。PDFには別のファイル（notoserifjp-300.ttf）を使う */
+@font-face{font-family:"Noto Serif JP";src:url("notoserifjp-300-screen.woff2") format("woff2");font-weight:400 700;font-display:swap}
 :root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0;font-size:14px}
 img{max-width:100%}
@@ -351,7 +351,7 @@ html.nopno .pno{display:none}
       </div>
       <div class="small">場面のメモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
-    <div class="small">画面とPDFの書体：Noto Serif JP（SIL Open Font License 1.1）</div>
+    <div class="small">画面とPDFの書体：Noto Serif JP Light（SIL Open Font License 1.1）</div>
   </div>
 </div>
 <input type="file" id="fileIn" accept=".txt,text/plain" hidden>
@@ -380,7 +380,7 @@ const DECODE={h:'hashira',t:'togaki',s:'serifu',n:'plain',c:'casthead',k:'cast',
 const CAST_HEAD='【登場人物表】', SYN_HEAD='【あらすじ】';
 const isHead=t=>t==='casthead'||t==='synhead';
 /* PDF用：縦書き時に字形を移動(t)・90度回転(r)する文字と、その量（フォント単位）。Noto Serif JPの縦書き字形から算出 */
-const VT={"ぁ":["t",148,137],"ぃ":["t",158,144],"ぅ":["t",158,145],"ぇ":["t",157,146],"ぉ":["t",137,146],"ゕ":["t",158,146],"ゖ":["t",158,146],"っ":["t",143,146],"ゃ":["t",158,132],"ゅ":["t",158,144],"ょ":["t",158,144],"ゎ":["t",158,144],"ァ":["t",158,144],"ィ":["t",158,144],"ゥ":["t",158,144],"ェ":["t",158,146],"ォ":["t",158,144],"ヵ":["t",159,144],"ㇰ":["t",158,144],"ヶ":["t",158,144],"ㇱ":["t",157,144],"ㇲ":["t",157,144],"ッ":["t",158,145],"ㇳ":["t",157,145],"ㇴ":["t",158,145],"ㇵ":["t",158,144],"ㇶ":["t",158,144],"ㇷ":["t",158,144],"ㇸ":["t",158,144],"ㇹ":["t",158,143],"ㇺ":["t",158,144],"ャ":["t",158,144],"ュ":["t",158,144],"ョ":["t",158,144],"ㇻ":["t",156,144],"ㇼ":["t",158,144],"ㇽ":["t",158,146],"ㇾ":["t",158,146],"ㇿ":["t",158,144],"ヮ":["t",158,144],"…":["r",120,880],"‥":["r",120,880],"，":["t",664,672],"．":["t",666,666],"〈":["r",120,880],"〉":["r",120,880],"【":["r",120,880],"】":["r",120,880],"｛":["r",120,828],"｝":["r",120,930],"「":["r",100,880],"」":["r",140,876],"《":["r",120,880],"》":["r",120,880],"〔":["r",120,880],"〕":["r",120,880],"『":["r",120,875],"』":["r",120,885],"（":["r",120,881],"）":["r",120,880],"―":["r",120,880],"〜":["r",120,880],"〟":["r",119,894],"〝":["r",120,866],"、":["t",626,654],"。":["t",598,608],"～":["r",120,880],"＝":["r",120,880],"ー":["r",118,864]};
+const VT={"ぁ":["t",149,140],"ぃ":["t",161,146],"ぅ":["t",161,148],"ぇ":["t",160,148],"ぉ":["t",140,148],"ゕ":["t",160,149],"ゖ":["t",160,148],"っ":["t",144,148],"ゃ":["t",161,134],"ゅ":["t",160,147],"ょ":["t",160,146],"ゎ":["t",161,146],"ァ":["t",161,146],"ィ":["t",160,147],"ゥ":["t",160,146],"ェ":["t",160,148],"ォ":["t",162,146],"ヵ":["t",162,146],"ㇰ":["t",162,146],"ヶ":["t",162,146],"ㇱ":["t",160,146],"ㇲ":["t",160,146],"ッ":["t",160,147],"ㇳ":["t",160,147],"ㇴ":["t",160,148],"ㇵ":["t",160,146],"ㇶ":["t",162,146],"ㇷ":["t",160,147],"ㇸ":["t",160,147],"ㇹ":["t",161,146],"ㇺ":["t",161,146],"ャ":["t",160,147],"ュ":["t",160,146],"ョ":["t",160,148],"ㇻ":["t",160,146],"ㇼ":["t",160,146],"ㇽ":["t",162,148],"ㇾ":["t",160,149],"ㇿ":["t",161,147],"ヮ":["t",161,146],"…":["r",120,880],"‥":["r",120,880],"，":["t",662,670],"．":["t",664,664],"〈":["r",120,880],"〉":["r",120,880],"【":["r",120,880],"】":["r",120,880],"｛":["r",120,824],"｝":["r",120,934],"「":["r",102,880],"」":["r",138,878],"《":["r",120,880],"》":["r",120,880],"〔":["r",120,880],"〕":["r",120,880],"『":["r",120,875],"』":["r",120,885],"（":["r",120,881],"）":["r",120,879],"―":["r",120,880],"〜":["r",120,880],"〟":["r",119,895],"〝":["r",120,865],"、":["t",625,653],"。":["t",593,605],"～":["r",120,880],"＝":["r",120,880],"ー":["r",120,862]};
 const SAMPLE=[
 '○喫茶店「灯台」・店内（夜）',
 '　　　閉店間際。客はいない。カウンターの奥で、岬（三十二）がカップを拭いている。',
@@ -1490,14 +1490,14 @@ function loadScript(src){ return new Promise((res,rej)=>{ const s=document.creat
 async function ensurePdfKit(){
   if(!(window.jspdf&&window.jspdf.jsPDF)) await loadScript('jspdf.umd.min.js');
   if(!fontB64){
-    const resp=await fetch('notoserifjp.ttf'); if(!resp.ok) throw new Error('font');
+    const resp=await fetch('notoserifjp-300.ttf'); if(!resp.ok) throw new Error('font');
     const blob=await resp.blob();
     fontB64=await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(',')[1]); r.onerror=rej; r.readAsDataURL(blob); });
   }
 }
 function buildPdf(){
   const pdf=new window.jspdf.jsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true});
-  pdf.addFileToVFS('notoserifjp.ttf',fontB64); pdf.addFont('notoserifjp.ttf','Mincho','normal','Identity-H'); pdf.setFont('Mincho','normal');
+  pdf.addFileToVFS('notoserifjp-300.ttf',fontB64); pdf.addFont('notoserifjp-300.ttf','Mincho','normal','Identity-H'); pdf.setFont('Mincho','normal');
   pdf.setProperties({title:title||'無題'});
   /* 文字は約16pt（マス6.88mm）。20字分の高さを上下中央に置き、左右は行間で全体の横幅（198.3mm）を保つ */
   const PW=297, PH=210, cs=6.88, gridW=198.3, step=(gridW-cs)/(PER-1), top=(PH-ROWS*cs)/2, right=(PW+gridW)/2;
