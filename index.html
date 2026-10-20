@@ -81,12 +81,12 @@ html.fit{scroll-snap-type:y proximity;scroll-padding-top:calc(var(--barh,56px) +
 html.fit .page{scroll-snap-align:start}
 main{flex:1 1 auto;min-width:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px 40vh}
 .layout{display:flex;align-items:flex-start}
-#outline{flex:0 0 252px;width:252px;box-sizing:border-box;position:sticky;top:calc(var(--barh,56px) + env(safe-area-inset-top,0px));
+#outline{flex:0 0 286px;width:286px;box-sizing:border-box;position:sticky;top:calc(var(--barh,56px) + env(safe-area-inset-top,0px));
   height:calc(100vh - var(--barh,56px) - env(safe-area-inset-top,0px));overflow:hidden;background:var(--bar);border-right:1px solid var(--edge);
   padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:10px;padding-block:10px 12px;display:flex;flex-direction:column;gap:8px}
 #outline + main{padding-left:16px}
 #outline button{font:inherit;color:var(--ink);cursor:pointer;touch-action:manipulation}
-.tabs{flex:0 0 auto;display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--rule);border-radius:7px;overflow:hidden}
+.tabs{flex:0 0 auto;display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--rule);border-radius:7px;overflow:hidden}
 .tabs button{border:0;border-left:1px solid var(--rule);background:var(--paper);min-height:34px;font-size:13px!important;font-weight:600}
 .tabs button:first-child{border-left:0}
 .tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper)!important}
@@ -215,6 +215,13 @@ html.nopno .pno{display:none}
 
 #bGrid[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
 html.nogrid .col,html.nogrid .frame{display:none}
+
+.nbox{display:flex;flex-direction:column;gap:4px}
+.nbox label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.06em;padding:0 2px}
+.nbox textarea{width:100%;box-sizing:border-box;resize:vertical;min-height:7.4em;font:inherit;font-size:13px;line-height:1.55;color:var(--ink);
+  background:var(--paper);border:1px solid var(--edge);border-radius:6px;padding:7px 9px}
+.nbox textarea:focus{outline:2px solid var(--accent);outline-offset:0}
+#tabNotes{gap:10px;padding-bottom:8px}
 </style>
 <script src="firebase-config.js"></script>
 <script src="firebase.js"></script>
@@ -247,6 +254,7 @@ html.nogrid .col,html.nogrid .frame{display:none}
   <div class="tabs" role="tablist">
     <button type="button" role="tab" data-tab="scenes" aria-selected="true">柱一覧</button>
     <button type="button" role="tab" data-tab="people" aria-selected="false">人物</button>
+    <button type="button" role="tab" data-tab="notes" aria-selected="false">メモ</button>
     <button type="button" role="tab" data-tab="find" aria-selected="false">検索</button>
   </div>
 
@@ -265,6 +273,14 @@ html.nogrid .col,html.nogrid .frame{display:none}
     <div class="tabhead"><span id="pplCount"></span><span class="small">セリフの多い順</span></div>
     <ul id="pplList"></ul>
     <p class="small" id="pplEmpty" hidden>セリフ（「名前「…」」の形の段落）がまだありません。</p>
+  </section>
+
+  <section class="tab" id="tabNotes" hidden>
+    <div class="nbox"><label for="nt-cast">人物一覧</label><textarea id="nt-cast" data-key="cast" rows="6"></textarea></div>
+    <div class="nbox"><label for="nt-act1">第一幕</label><textarea id="nt-act1" data-key="act1" rows="6"></textarea></div>
+    <div class="nbox"><label for="nt-act2a">第二幕・前半</label><textarea id="nt-act2a" data-key="act2a" rows="6"></textarea></div>
+    <div class="nbox"><label for="nt-act2b">第二幕・後半</label><textarea id="nt-act2b" data-key="act2b" rows="6"></textarea></div>
+    <div class="nbox"><label for="nt-act3">第三幕</label><textarea id="nt-act3" data-key="act3" rows="6"></textarea></div>
   </section>
 
   <section class="tab" id="tabFind" hidden>
@@ -416,6 +432,7 @@ let doc=[], types=['hashira'], pids=[1], pidSeq=1, memos={}, cover=false, caret=
 let L=null, P=[], CELL=30, PADX=30, G=null;
 let undo=[], redo=[], lastKind='', lastT=0, composing=false, changed=false;
 let anchor=null, dragging=false, mouseClick=false, clipPrep=false;
+let notes={}, notesFor=null;   /* 原稿全体のメモ（人物一覧・各幕） */
 const pages=[]; let coverEl=null;
 
 /* ---------- 書式の判定・テキスト変換 ---------- */
@@ -470,7 +487,7 @@ function fronts(){
 function setDoc(o){
   curId=o.id; title=o.t||''; doc=[...(o.d||'')]; types=(o.y||[]).slice();
   pids=(o.pids||[]).slice(); pidSeq=pids.reduce((m,x)=>Math.max(m,x),0);
-  memos=Object.assign({},o.memos||{}); cover=!!o.cover;
+  memos=Object.assign({},o.memos||{}); cover=!!o.cover; notes=Object.assign({},o.notes||{}); notesFor=null;
   caret=Math.max(0,Math.min(o.c|0,doc.length)); fixTypes(); titleIn.value=title;
   undo=[]; redo=[]; lastKind=''; anchor=null; memoPid=undefined;
 }
@@ -511,9 +528,9 @@ const kvGet=k=>tx('kv','readonly',s=>s.get(k));
 const kvSet=(k,v)=>tx('kv','readwrite',s=>s.put(v,k));
 const liveList=()=>[...recs.values()].filter(r=>!r.deleted).sort((a,b)=>b.updatedAt-a.updatedAt);
 
-function editorRec(){ return {id:curId,title,d:doc.join(''),y:types.map(t=>CODE[t]).join(''),p:encPids(),m:liveMemos(),cv:cover,c:caret}; }
+function editorRec(){ return {id:curId,title,d:doc.join(''),y:types.map(t=>CODE[t]).join(''),p:encPids(),m:liveMemos(),n:Object.assign({},notes),cv:cover,c:caret}; }
 function loadRec(r){
-  setDoc({id:r.id,t:r.title,d:r.d||'',y:decodeTypes(r.y),pids:decPids(r.p),memos:r.m||{},cover:!!r.cv,c:r.c||0});
+  setDoc({id:r.id,t:r.title,d:r.d||'',y:decodeTypes(r.y),pids:decPids(r.p),memos:r.m||{},notes:r.n||{},cover:!!r.cv,c:r.c||0});
   kvSet('current',r.id).catch(()=>{});
 }
 
@@ -562,7 +579,7 @@ async function pushOne(r){
   const sent=sentParts.get(r.id)||[];
   for(let k=0;k<parts.length;k++) if(sent[k]!==parts[k]) await withTimeout(FB.setDoc(FB.doc(fdb,'users',uid,'docs',r.id,'parts',String(k)),{text:parts[k]}),30000);
   for(let k=parts.length;k<(r.rparts||0);k++) await withTimeout(FB.deleteDoc(FB.doc(fdb,'users',uid,'docs',r.id,'parts',String(k))),30000);
-  await withTimeout(FB.setDoc(base,{title:r.title||'',types:r.y||'',pids:r.p||'',memos:r.m||{},cover:!!r.cv,caret:r.c||0,
+  await withTimeout(FB.setDoc(base,{title:r.title||'',types:r.y||'',pids:r.p||'',memos:r.m||{},notes:r.n||{},cover:!!r.cv,caret:r.c||0,
     chars:countChars(arr),parts:parts.length,updatedAt:ver,deleted:false,device:DEVICE()}),30000);
   sentParts.set(r.id,parts);
   const cur=recs.get(r.id); if(!cur) return;
@@ -575,7 +592,7 @@ async function fetchRemote(id,R){
   const ps=await Promise.all(Array.from({length:n},(_,k)=>FB.getDoc(FB.doc(fdb,'users',uid,'docs',id,'parts',String(k)))));
   const parts=ps.map(s=>s.exists()?((s.data()||{}).text||''):'');
   sentParts.set(id,parts);
-  return {id,title:R.title||'',d:parts.join(''),y:R.types||'',p:R.pids||'',m:R.memos||{},cv:!!R.cover,c:R.caret||0,
+  return {id,title:R.title||'',d:parts.join(''),y:R.types||'',p:R.pids||'',m:R.memos||{},n:R.notes||{},cv:!!R.cover,c:R.caret||0,
     updatedAt:R.updatedAt||0,dirty:false,remoteAt:R.updatedAt||0,rparts:n,deleted:false};
 }
 let remoteQueue=Promise.resolve();
@@ -884,12 +901,12 @@ function scrollToCaret(){
 
 /* ---------- サイドパネル：柱一覧・場面メモ・人物・検索 ---------- */
 let tab='scenes';
-try{ const t=localStorage.getItem('genko-tab'); if(t==='people'||t==='scenes') tab=t; }catch(e){}
+try{ const t=localStorage.getItem('genko-tab'); if(t==='people'||t==='scenes'||t==='notes') tab=t; }catch(e){}
 function setTab(t){
   tab=t;
   document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));
   $('tabScenes').hidden=t!=='scenes'; $('memoBox').hidden=t!=='scenes';
-  $('tabPeople').hidden=t!=='people'; $('tabFind').hidden=t!=='find';
+  $('tabPeople').hidden=t!=='people'; $('tabNotes').hidden=t!=='notes'; $('tabFind').hidden=t!=='find';
   if(t!=='find'){ try{ localStorage.setItem('genko-tab',t); }catch(e){} }
   if(L) render();
 }
@@ -933,6 +950,7 @@ function updatePanels(){
   } else if(sc){ $('memoScene').textContent=`${cur+1}　${sc.text||'（柱の文言なし）'}`; }
   /* 登場人物 */
   if(tab==='people') updatePeople(items);
+  if(notesFor!==curId){ notesFor=curId; document.querySelectorAll('#tabNotes textarea').forEach(el=>{ el.value=notes[el.dataset.key]||''; }); }
   if(tab==='find') renderFindList();
 }
 $('olList').addEventListener('click',e=>{
@@ -978,6 +996,11 @@ function updatePeople(items){
   $('pplList').innerHTML=arr.map(e=>`<li><button type="button" class="pn" data-i="${e.first}"><span class="nm">${esc(e.name)}</span><span class="m">セリフ${e.count}・${e.sc.size}場面</span></button>
     <div class="chips">${[...e.sc].map(([s,i])=>`<button type="button" data-i="${i}" title="${s?esc((items[s-1]&&items[s-1].text)||''):'最初の柱より前'}">${s?'#'+s:'冒頭'}</button>`).join('')}</div></li>`).join('');
 }
+/* 原稿全体のメモ：入力のたびに保存（同期の対象） */
+document.querySelectorAll('#tabNotes textarea').forEach(el=>el.addEventListener('input',()=>{
+  const k=el.dataset.key; if(el.value) notes[k]=el.value; else delete notes[k];
+  markDirty(); saveCache();
+}));
 $('pplList').addEventListener('click',e=>{ const b=e.target.closest('button[data-i]'); if(b) jumpTo(+b.dataset.i); });
 
 /* 検索・置換 */
@@ -1452,7 +1475,7 @@ $('fileIn').addEventListener('change',async()=>{
 /* バックアップ：すべての原稿を、場面メモ・表紙の設定ごとJSONで書き出す／読み込む */
 $('pBackup').addEventListener('click',async()=>{
   await saveLocalNow();
-  const docs=liveList().map(r=>({id:r.id,title:r.title||'',d:r.d||'',y:r.y||'',p:r.p||'',m:r.m||{},cv:!!r.cv,c:r.c||0,updatedAt:r.updatedAt}));
+  const docs=liveList().map(r=>({id:r.id,title:r.title||'',d:r.d||'',y:r.y||'',p:r.p||'',m:r.m||{},n:r.n||{},cv:!!r.cv,c:r.c||0,updatedAt:r.updatedAt}));
   const d=new Date(), stamp=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
   await saveFile(`脚本バックアップ-${stamp}.json`,JSON.stringify({app:'genko-script',version:1,exportedAt:Date.now(),docs}),'application/json');
 });
@@ -1466,9 +1489,9 @@ $('jsonIn').addEventListener('change',async()=>{
   for(const x of data.docs){
     if(typeof x.d!=='string') continue;
     const ex=recs.get(x.id);
-    if(ex&&!ex.deleted&&ex.d===x.d&&ex.title===x.title){ same++; continue; }
+    if(ex&&!ex.deleted&&ex.d===x.d&&ex.title===x.title&&JSON.stringify(ex.n||{})===JSON.stringify(x.n||{})){ same++; continue; }
     const id=ex?newId():(x.id||newId());   /* 同じ原稿があって中身が違うときは、別の原稿として追加 */
-    const r={id,title:(x.title||'')+(ex?'（バックアップ）':''),d:x.d,y:x.y||'',p:x.p||'',m:x.m||{},cv:!!x.cv,c:x.c||0,
+    const r={id,title:(x.title||'')+(ex?'（バックアップ）':''),d:x.d,y:x.y||'',p:x.p||'',m:x.m||{},n:x.n||{},cv:!!x.cv,c:x.c||0,
       updatedAt:x.updatedAt||Date.now(),dirty:true,remoteAt:0,rparts:0,deleted:false};
     recs.set(id,r); await idbPut(r); added++;
   }

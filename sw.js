@@ -1,7 +1,7 @@
 /* オフラインでも起動できるように、アプリのファイルを端末に保存しておく。
    起動時は端末に保存した版をすぐ使い、裏で新しい版を取りに行く（更新は次回の起動から反映）。
    ファイルを更新したら、下の CACHE の番号を1つ増やすと、確実に入れ替わる。 */
-const CACHE='genko-v9';
+const CACHE='genko-v11';
 const FILES=['./','index.html','firebase-config.js','firebase.js','jspdf.umd.min.js','notoserifjp-300-v.ttf','notoserifjp-300-screen.woff2','manifest.webmanifest','icon-180.png','icon-192.png','icon-512.png'];
 self.addEventListener('install',e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting())); });
 self.addEventListener('activate',e=>{ e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())); });
