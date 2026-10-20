@@ -757,7 +757,7 @@ function colRight(lc){ return G.padx+lc*G.step; }
 const zoom='fit';  /* 常に1ページ全体を表示領域に収める */
 function viewH(){ return window.innerHeight; }  /* 画面キーボードの出し入れで縮まないよう、表示領域全体の高さを使う */
 /* 文字の大きさ（この端末に記憶）：マス目の大きさはそのままで、マスの中の文字だけを大・中・小で変える */
-const SIZE_SCALE={l:1,m:0.85,s:0.72};
+const SIZE_SCALE={l:0.85,m:0.72,s:0.6};   /* マスに対する文字の大きさの割合（1＝マスの約8割） */
 let sizeKey='l';
 try{ const v=localStorage.getItem('genko-size'); if(v==='m'||v==='s') sizeKey=v; }catch(e){}
 function resize(){
