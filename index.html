@@ -227,6 +227,10 @@ html.nogrid .col,html.nogrid .frame{display:none}
   background:var(--paper);border:1px solid var(--edge);border-radius:6px;padding:7px 9px}
 .nbox textarea:focus{outline:2px solid var(--accent);outline-offset:0}
 #tabNotes{gap:10px;padding-bottom:8px}
+/* メモの箱は、パネルの残りの高さいっぱいに広げる（画面の大きさに合わせて伸び縮み） */
+#plotBox{flex:1 1 auto;min-height:0}
+#nt-plot{flex:1 1 auto;min-height:12em;resize:none}
+#castBox{margin-bottom:8px}
 #nt-cast{min-height:10.3em}   /* 人物一覧だけ、ほかの欄より約2.5行分高く */
 </style>
 <script src="firebase-config.js"></script>
@@ -276,17 +280,14 @@ html.nogrid .col,html.nogrid .frame{display:none}
   </div>
 
   <section class="tab" id="tabPeople" hidden>
+    <div class="nbox" id="castBox"><label for="nt-cast">人物一覧</label><textarea id="nt-cast" data-key="cast" rows="8"></textarea></div>
     <div class="tabhead"><span id="pplCount"></span><span class="small">セリフの多い順</span></div>
     <ul id="pplList"></ul>
     <p class="small" id="pplEmpty" hidden>セリフ（「名前「…」」の形の段落）がまだありません。</p>
   </section>
 
   <section class="tab" id="tabNotes" hidden>
-    <div class="nbox"><label for="nt-cast">人物一覧</label><textarea id="nt-cast" data-key="cast" rows="8"></textarea></div>
-    <div class="nbox"><label for="nt-act1">第一幕</label><textarea id="nt-act1" data-key="act1" rows="5"></textarea></div>
-    <div class="nbox"><label for="nt-act2a">第二幕・前半</label><textarea id="nt-act2a" data-key="act2a" rows="5"></textarea></div>
-    <div class="nbox"><label for="nt-act2b">第二幕・後半</label><textarea id="nt-act2b" data-key="act2b" rows="5"></textarea></div>
-    <div class="nbox"><label for="nt-act3">第三幕</label><textarea id="nt-act3" data-key="act3" rows="5"></textarea></div>
+    <div class="nbox" id="plotBox"><textarea id="nt-plot" data-key="plot" aria-label="メモ"></textarea></div>
   </section>
 
   <section class="tab" id="tabFind" hidden>
@@ -438,7 +439,15 @@ let doc=[], types=['hashira'], pids=[1], pidSeq=1, memos={}, cover=false, caret=
 let L=null, P=[], CELL=30, PADX=30, G=null;
 let undo=[], redo=[], lastKind='', lastT=0, composing=false, changed=false;
 let anchor=null, dragging=false, mouseClick=false, clipPrep=false;
-let notes={}, notesFor=null;   /* 原稿全体のメモ（人物一覧・各幕） */
+let notes={}, notesFor=null;   /* 原稿全体のメモ（人物一覧・メモ） */
+/* 以前の4つの欄（第一幕〜第三幕）に書いた内容は、見出しを付けて1つのメモにまとめる */
+const OLD_ACTS=[['act1','第一幕'],['act2a','第二幕・前半'],['act2b','第二幕・後半'],['act3','第三幕']];
+function mergeActs(){
+  const parts=OLD_ACTS.filter(([k])=>notes[k]&&notes[k].trim()).map(([k,l])=>`【${l}】\n${notes[k].replace(/\s+$/,'')}`);
+  if(!parts.length) return;
+  notes.plot=(notes.plot?notes.plot.replace(/\s+$/,'')+'\n\n':'')+parts.join('\n\n');
+  for(const [k] of OLD_ACTS) delete notes[k];
+}
 const pages=[]; let coverEl=null;
 
 /* ---------- 書式の判定・テキスト変換 ---------- */
@@ -493,7 +502,7 @@ function fronts(){
 function setDoc(o){
   curId=o.id; title=o.t||''; doc=[...(o.d||'')]; types=(o.y||[]).slice();
   pids=(o.pids||[]).slice(); pidSeq=pids.reduce((m,x)=>Math.max(m,x),0);
-  memos=Object.assign({},o.memos||{}); cover=!!o.cover; notes=Object.assign({},o.notes||{}); notesFor=null;
+  memos=Object.assign({},o.memos||{}); cover=!!o.cover; notes=Object.assign({},o.notes||{}); notesFor=null; mergeActs();
   caret=Math.max(0,Math.min(o.c|0,doc.length)); fixTypes(); titleIn.value=title;
   undo=[]; redo=[]; lastKind=''; anchor=null; memoPid=undefined;
 }
@@ -967,7 +976,7 @@ function updatePanels(){
   } else if(sc){ $('memoScene').textContent=`${cur+1}　${sc.text||'（柱の文言なし）'}`; }
   /* 登場人物 */
   if(tab==='people') updatePeople(items);
-  if(notesFor!==curId){ notesFor=curId; document.querySelectorAll('#tabNotes textarea').forEach(el=>{ el.value=notes[el.dataset.key]||''; }); }
+  if(notesFor!==curId){ notesFor=curId; document.querySelectorAll('.nbox textarea').forEach(el=>{ el.value=notes[el.dataset.key]||''; }); }
   if(tab==='find') renderFindList();
 }
 $('olList').addEventListener('click',e=>{
@@ -1014,7 +1023,7 @@ function updatePeople(items){
     <div class="chips">${[...e.sc].map(([s,i])=>`<button type="button" data-i="${i}" title="${s?esc((items[s-1]&&items[s-1].text)||''):'最初の柱より前'}">${s?'#'+s:'冒頭'}</button>`).join('')}</div></li>`).join('');
 }
 /* 原稿全体のメモ：入力のたびに保存（同期の対象） */
-document.querySelectorAll('#tabNotes textarea').forEach(el=>el.addEventListener('input',()=>{
+document.querySelectorAll('.nbox textarea').forEach(el=>el.addEventListener('input',()=>{
   const k=el.dataset.key; if(el.value) notes[k]=el.value; else delete notes[k];
   markDirty(); saveCache();
 }));
