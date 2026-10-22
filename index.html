@@ -218,7 +218,6 @@ html.nopno .pno{display:none}
 #sizeSel button{min-width:64px}
 #sizeSel button[aria-pressed="true"],#themeSel button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
 
-#bGrid[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
 html.nogrid .col,html.nogrid .frame{display:none}
 
 .nbox{display:flex;flex-direction:column;gap:4px}
@@ -255,7 +254,6 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
     <button id="bUndo" class="ico" type="button" disabled aria-label="元に戻す" title="元に戻す"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
     <button id="bRedo" class="ico" type="button" disabled aria-label="やり直す" title="やり直す"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
     <span class="sep"></span>
-    <button id="bGrid" type="button" aria-pressed="true" title="原稿用紙のマス目を表示・非表示">マス目</button>
     <button id="bDocs" type="button">その他</button>
   </div>
   <div class="stats" aria-live="polite">
@@ -339,6 +337,10 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
     <div class="pgroup">
       <h3>ページ番号</h3>
       <label class="chk"><input type="checkbox" id="pPno" checked> ページ番号を表示する（画面とPDFの両方）</label>
+    </div>
+    <div class="pgroup">
+      <h3>マス目（この端末）</h3>
+      <label class="chk"><input type="checkbox" id="pGrid" checked> 原稿用紙のマス目を表示する（画面のみ。PDFには出力されません）</label>
     </div>
     <div class="pgroup">
       <h3>文字の大きさ（この端末）</h3>
@@ -1710,8 +1712,8 @@ applySizeUI();
 /* 原稿用紙のマス目の表示・非表示（この端末に記憶）。文字の位置は変わらない */
 let showGrid=true;
 try{ showGrid=localStorage.getItem('genko-grid')!=='0'; }catch(e){}
-function applyGrid(){ document.documentElement.classList.toggle('nogrid',!showGrid); $('bGrid').setAttribute('aria-pressed',String(showGrid)); }
-$('bGrid').addEventListener('click',()=>{ showGrid=!showGrid; try{ localStorage.setItem('genko-grid',showGrid?'1':'0'); }catch(e){} applyGrid(); refocus(); });
+function applyGrid(){ document.documentElement.classList.toggle('nogrid',!showGrid); $('pGrid').checked=showGrid; }
+$('pGrid').addEventListener('change',()=>{ showGrid=$('pGrid').checked; try{ localStorage.setItem('genko-grid',showGrid?'1':'0'); }catch(e){} applyGrid(); });
 applyGrid();
 
 /* ---------- 起動 ---------- */
