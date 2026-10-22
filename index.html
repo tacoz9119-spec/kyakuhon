@@ -227,6 +227,8 @@ html.nogrid .col,html.nogrid .frame{display:none}
   background:var(--paper);border:1px solid var(--edge);border-radius:6px;padding:7px 9px}
 .nbox textarea:focus{outline:2px solid var(--accent);outline-offset:0}
 #tabNotes{gap:10px;padding-bottom:8px}
+.tools button.ico{min-width:44px;padding:0 10px;display:inline-flex;align-items:center;justify-content:center}
+.tools button.ico svg{display:block}
 html.syncwait .tools,html.syncwait main,html.syncwait #outline{pointer-events:none}
 html.syncwait main{opacity:.55;transition:opacity .2s .4s}
 /* メモの箱は、パネルの残りの高さいっぱいに広げる（画面の大きさに合わせて伸び縮み） */
@@ -250,8 +252,8 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <button type="button" data-type="serifu" aria-pressed="false">セリフ</button>
     </div>
     <span class="sep"></span>
-    <button id="bUndo" type="button" disabled>元に戻す</button>
-    <button id="bRedo" type="button" disabled>やり直す</button>
+    <button id="bUndo" class="ico" type="button" disabled aria-label="元に戻す" title="元に戻す"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+    <button id="bRedo" class="ico" type="button" disabled aria-label="やり直す" title="やり直す"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
     <span class="sep"></span>
     <button id="bGrid" type="button" aria-pressed="true" title="原稿用紙のマス目を表示・非表示">マス目</button>
     <button id="bDocs" type="button">その他</button>
