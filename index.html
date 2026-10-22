@@ -227,6 +227,8 @@ html.nogrid .col,html.nogrid .frame{display:none}
   background:var(--paper);border:1px solid var(--edge);border-radius:6px;padding:7px 9px}
 .nbox textarea:focus{outline:2px solid var(--accent);outline-offset:0}
 #tabNotes{gap:10px;padding-bottom:8px}
+html.syncwait .tools,html.syncwait main,html.syncwait #outline{pointer-events:none}
+html.syncwait main{opacity:.55;transition:opacity .2s .4s}
 /* メモの箱は、パネルの残りの高さいっぱいに広げる（画面の大きさに合わせて伸び縮み） */
 #plotBox{flex:1 1 auto;min-height:0}
 #nt-plot{flex:1 1 auto;min-height:12em;resize:none}
@@ -522,7 +524,8 @@ const countChars=a=>a.reduce((n,ch)=>n+(ch==='\n'?0:1),0);
 /* ---------- 保存：原稿はまず端末内（IndexedDB）に保存し、Firebaseで端末間を同期する ----------
    ・書く／保存する／PDFにする、はどのサーバーが止まっていても端末だけで動く
    ・同期は通信できるときに行う。通信できない間の変更は端末にためておき、つながったら送る
-   ・同じ原稿を両方の端末で同期前に書き換えた場合は、どちらも消さず、もう一方を「（別の端末の版）」として残す */
+   ・起動時やアプリに戻ったときは、開いている原稿の最新の版を確かめてから書けるようにする
+   ・それでも両方の端末で同期前に書き換えた場合は、サーバーにある版を元の原稿とし、この端末の版を「（iPadで書いた版）」などとして残す */
 const CFG=(window.GENKO_FIREBASE&&window.GENKO_FIREBASE.apiKey)?window.GENKO_FIREBASE:null;
 let mode='local';            /* local：同期の設定なし／signedout：未ログイン／online：同期中／offline：通信できない */
 let localPending=false, saveErr=null, pushing=false, lastSync=0, editVersion=0;
@@ -651,36 +654,62 @@ async function applyRemote(id,R){
     }
     return;
   }
-  /* 両方の端末で書き換えられていた：こちらの版はそのまま、向こうの版を別の原稿として残す */
-  const full=await fetchRemote(id,R), copyId=newId();
-  sentParts.delete(id);
-  Object.assign(full,{id:copyId,title:(full.title||'無題')+'（別の端末の版）',dirty:true,remoteAt:0,rparts:0,updatedAt:Date.now()});
-  recs.set(copyId,full); await idbPut(full);
-  L.remoteAt=R.updatedAt; L.rparts=Math.max(L.rparts||0,R.parts||0); await idbPut(L);
-  toast('別の端末でも同じ原稿が書き換えられていたため、そちらを「（別の端末の版）」として残しました');
+  /* 両方の端末で書き換えられていた：サーバーにある版（もう一方の端末の版）を元の原稿として残し、
+     この端末で書き換えた版は「（iPadで書いた版）」などの別の原稿にする。もう一方の端末の原稿は上書きしない */
+  if(id===curId&&localPending) await saveLocalNow();
+  const mine=Object.assign({},recs.get(id)||L), copyId=newId();
+  Object.assign(mine,{id:copyId,title:(mine.title||'無題')+'（'+DEVICE()+'で書いた版）',dirty:true,remoteAt:0,rparts:0,updatedAt:Date.now(),deleted:false,sample:false});
+  recs.set(copyId,mine); await idbPut(mine);
+  const full=await fetchRemote(id,R);
+  recs.set(id,full); await idbPut(full);
+  if(id===curId){ const c=caret; loadRec(full); caret=Math.min(c,doc.length); render(); }
+  toast('別の端末で新しく書かれた版を読み込みました。この端末で書き換えた分は「（'+DEVICE()+'で書いた版）」として残しています');
   schedulePush(1000);
 }
 function startSync(){
   mode=navigator.onLine?'online':'offline'; updateSave();
   if(unsubRemote) unsubRemote();
   unsubRemote=FB.onSnapshot(FB.collection(fdb,'users',uid,'docs'),onRemote,err=>{ saveErr=err&&err.code||'error'; updateSave(); });
-  schedulePush(500);
+  checkLatest().then(()=>schedulePush(500));
 }
+/* 起動時やアプリに戻ったときは、最新の版を確かめ終えるまで書けないようにする（古い版に書き足して上書きするのを防ぐ） */
+let syncWait=false, waitT=0, checking=false;
+function setWait(on){
+  syncWait=on; clearTimeout(waitT);
+  document.documentElement.classList.toggle('syncwait',on);
+  [ta,titleIn,$('memoText'),...document.querySelectorAll('.nbox textarea')].forEach(el=>{ if(el) el.readOnly=on; });
+  if(on) waitT=setTimeout(()=>setWait(false),8000);   /* 通信が遅いときも、8秒たったら書けるようにする */
+  updateSave();
+}
+async function checkLatest(){
+  if(mode!=='online'||!uid||checking) return;
+  if(!navigator.onLine){ setWait(false); return; }
+  checking=true; setWait(true);
+  try{
+    const id=curId, s=await withTimeout(FB.getDoc(FB.doc(fdb,'users',uid,'docs',id)),6000);
+    if(s.exists()){
+      const R=s.data(), L=recs.get(id);
+      if(L&&(R.updatedAt||0)>(L.remoteAt||0)){ remoteQueue=remoteQueue.then(()=>applyRemote(id,R)); await remoteQueue; }
+    }
+  }catch(e){}
+  checking=false; setWait(false);
+}
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') checkLatest(); });
 function stopSync(){ if(unsubRemote){ unsubRemote(); unsubRemote=null; } clearTimeout(pushT); }
 function initFirebase(){
   if(!CFG||!window.FB){ mode='local'; updateSave(); return; }
   try{
     fbApp=FB.initializeApp(CFG); auth=FB.getAuth(fbApp); fdb=FB.getFirestore(fbApp);
-    mode='signedout';
+    mode='signedout'; if(navigator.onLine) setWait(true);
     FB.onAuthStateChanged(auth,u=>{
       if(u){ uid=u.uid; userEmail=u.email||''; startSync(); }
-      else { uid=null; userEmail=''; stopSync(); mode='signedout'; updateSave(); }
+      else { uid=null; userEmail=''; stopSync(); mode='signedout'; setWait(false); }
       refreshPanel();
     });
   }catch(e){ mode='local'; saveErr='config'; }
   updateSave();
 }
-window.addEventListener('online',()=>{ if(uid){ mode='online'; updateSave(); schedulePush(500); } });
+window.addEventListener('online',()=>{ if(uid){ mode='online'; updateSave(); checkLatest().then(()=>schedulePush(500)); } });
 window.addEventListener('offline',()=>{ if(uid){ mode='offline'; updateSave(); } });
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'){ saveLocalNow().then(()=>schedulePush(0)); } });
 window.addEventListener('pagehide',()=>{ saveLocalNow(); });
@@ -716,6 +745,7 @@ function updateSave(){
   let s='', k='ok';
   const waiting=[...recs.values()].some(r=>r.dirty&&!r.sample);
   if(saveErr==='local'){ s='端末に保存できません'; k='err'; }
+  else if(syncWait) s='最新の版を確認中…';
   else if(localPending) s='保存中…';
   else if(mode==='local') s='端末に保存済み（同期なし）';
   else if(mode==='signedout') s='端末に保存済み・未ログイン';
@@ -1286,6 +1316,7 @@ function showIme(data){
   imeEl.textContent=t; imeEl.hidden=!t;
 }
 ta.addEventListener('input',()=>{
+  if(syncWait&&!composing){ resetTA(); return; }
   if(clipPrep){ clipPrep=false; resetTA(); return; }
   if(composing){ showIme(''); fitTA(); return; }
   scheduleFlush(false);
@@ -1303,6 +1334,7 @@ ta.addEventListener('compositionend',()=>{
   scheduleFlush(true);
 });
 ta.addEventListener('keydown',e=>{
+  if(syncWait){ e.preventDefault(); return; }
   if(e.isComposing||composing||e.keyCode===229) return;
   const mod=e.metaKey||e.ctrlKey, k=e.key;
   if(mod&&(k==='z'||k==='Z')){ e.preventDefault(); e.shiftKey?restore(redo,undo):restore(undo,redo); return; }
