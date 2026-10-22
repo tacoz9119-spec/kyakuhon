@@ -813,7 +813,8 @@ function resize(){
   root.style.setProperty('--barh',barH+'px');
   const byW=avail/(2+1.22*19+1);
   const byH=(viewH()-barH-24)/24;   /* ページの高さ＝余白1マス＋20行＋ぶら下げ・ページ番号3マス */
-  CELL=Math.max(10,Math.min(56,Math.floor(Math.min(byW,byH)*10)/10));
+  /* マスの大きさは整数のピクセルにする（小数だと、iPadのSafariで横罫線の位置がずれ、最下段の線が二重に見える） */
+  CELL=Math.max(10,Math.min(56,Math.floor(Math.min(byW,byH))));
   /* 左右の余白：画面の幅に余裕があれば、原稿用紙の左右に最大3マス分の余白を取る（マス目の大きさは変えない） */
   const gridW=CELL*(1.22*19+1);
   PADX=Math.round(Math.min(CELL*3,Math.max(CELL,(avail-gridW)/2-12))*10)/10;
