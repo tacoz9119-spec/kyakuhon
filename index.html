@@ -102,17 +102,9 @@ main{flex:1 1 auto;min-width:0;padding-left:max(16px,env(safe-area-inset-left,0p
 #olList .n{grid-row:1/4;font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:3px}
 #olList .t{font-family:var(--f-text);font-size:1em;line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-all}
 #olList .m{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
-#olList .memo{font-size:10.5px;color:var(--muted);line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-all;
-  border-left:2px solid var(--rule-soft);padding-left:5px;margin-top:2px}
 #olList li.cur button{background:var(--desk)}
 #olList li.cur .t{font-weight:600}
 #olList li.cur .n{color:var(--accent);font-weight:700}
-#memoBox{flex:0 0 auto;display:flex;flex-direction:column;gap:4px;border-top:1px solid var(--edge);padding-top:8px}
-#memoBox label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.06em}
-#memoScene{font-family:var(--f-text);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#memoText{width:100%;box-sizing:border-box;resize:vertical;min-height:5.5em;font:inherit;font-size:13px;line-height:1.5;color:var(--ink);
-  background:var(--paper);border:1px solid var(--edge);border-radius:6px;padding:6px 8px}
-#memoText:disabled{opacity:.5}
 #pplList li{display:flex;flex-direction:column;gap:3px;padding:4px 0;border-bottom:1px solid var(--edge)}
 #pplList .pn{display:flex;justify-content:space-between;align-items:baseline;gap:8px;background:transparent;border:0;border-radius:6px;padding:5px 6px;text-align:left}
 #pplList .nm{font-family:var(--f-text);font-size:14px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -276,11 +268,6 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
     <ol id="olList"></ol>
     <p class="small" id="olEmpty" hidden>柱はまだありません。メニューの「柱」で書式を切り替えると、ここに一覧が表示されます。</p>
   </section>
-  <div id="memoBox">
-    <label for="memoText">この場面のメモ</label>
-    <div id="memoScene"></div>
-    <textarea id="memoText" rows="4" placeholder="PDFには出力されません"></textarea>
-  </div>
 
   <section class="tab" id="tabPeople" hidden>
     <div class="nbox" id="castBox"><label for="nt-cast">人物一覧</label><textarea id="nt-cast" data-key="cast" rows="8"></textarea></div>
@@ -396,7 +383,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
           <button id="pDelNo" type="button">やめる</button>
         </span>
       </div>
-      <div class="small">原稿はこの端末の中に保存され、ログインしていれば同期用のサーバー（Firebase）にも送られます。読み込んだテキストは新しい原稿として追加されます。場面のメモと表紙の設定はテキストには書き出されません。</div>
+      <div class="small">原稿はこの端末の中に保存され、ログインしていれば同期用のサーバー（Firebase）にも送られます。読み込んだテキストは新しい原稿として追加されます。メモと表紙の設定はテキストには書き出されません。</div>
     </div>
     <div class="pgroup">
       <h3>バックアップ</h3>
@@ -404,7 +391,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
         <button id="pBackup" type="button">すべての原稿をバックアップ</button>
         <button id="pRestore" type="button">バックアップから読み込む</button>
       </div>
-      <div class="small">場面のメモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
+      <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP Light（SIL Open Font License 1.1）</div>
   </div>
@@ -681,7 +668,7 @@ let syncWait=false, waitT=0, checking=false;
 function setWait(on){
   syncWait=on; clearTimeout(waitT);
   document.documentElement.classList.toggle('syncwait',on);
-  [ta,titleIn,$('memoText'),...document.querySelectorAll('.nbox textarea')].forEach(el=>{ if(el) el.readOnly=on; });
+  [ta,titleIn,...document.querySelectorAll('.nbox textarea')].forEach(el=>{ if(el) el.readOnly=on; });
   if(on) waitT=setTimeout(()=>setWait(false),8000);   /* 通信が遅いときも、8秒たったら書けるようにする */
   updateSave();
 }
@@ -975,7 +962,7 @@ try{ const t=localStorage.getItem('genko-tab'); if(t==='people'||t==='scenes'||t
 function setTab(t){
   tab=t;
   document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));
-  $('tabScenes').hidden=t!=='scenes'; $('memoBox').hidden=t!=='scenes';
+  $('tabScenes').hidden=t!=='scenes';
   $('tabPeople').hidden=t!=='people'; $('tabNotes').hidden=t!=='notes'; $('tabFind').hidden=t!=='find';
   if(t!=='find'){ try{ localStorage.setItem('genko-tab',t); }catch(e){} }
   if(L) render();
@@ -998,26 +985,17 @@ function scenes(){
 function updatePanels(){
   /* 柱一覧 */
   const items=scenes();
-  const sig=items.map(x=>x.i+':'+x.c+':'+x.len+':'+x.text+':'+(memos[x.pid]||'')).join('\u0000')+'|'+L.mainCol;
+  const sig=items.map(x=>x.i+':'+x.c+':'+x.len+':'+x.text).join('\u0000')+'|'+L.mainCol;
   if(sig!==olSig){
     olSig=sig; olItems=items;
     $('olCount').textContent=items.length?items.length+'場面':'';
     $('olList').innerHTML=items.map((x,k)=>{
-      const memo=memos[x.pid];
-      return `<li><button type="button" data-i="${x.i}"><span class="n">${k+1}</span><span class="t">${esc(x.text||'（柱の文言なし）')}</span><span class="m">${posLabel(x.c)}・${(x.len/PER).toFixed(1)}枚</span>${memo?`<span class="memo">${esc(memo)}</span>`:''}</button></li>`;
+      return `<li><button type="button" data-i="${x.i}"><span class="n">${k+1}</span><span class="t">${esc(x.text||'（柱の文言なし）')}</span><span class="m">${posLabel(x.c)}・${(x.len/PER).toFixed(1)}枚</span></button></li>`;
     }).join('');
     $('olEmpty').hidden=items.length>0;
   }
   let cur=-1; olItems.forEach((x,k)=>{ if(x.i<=caret) cur=k; });
   [...$('olList').children].forEach((li,k)=>li.classList.toggle('cur',k===cur));
-  /* 場面メモ：カーソルのある場面（直前の柱）に付ける */
-  const sc=cur>=0?olItems[cur]:null, pid=sc?sc.pid:null;
-  if(pid!==memoPid){
-    memoPid=pid;
-    $('memoText').value=pid!=null?(memos[pid]||''):'';
-    $('memoText').disabled=pid==null;
-    $('memoScene').textContent=sc?`${cur+1}　${sc.text||'（柱の文言なし）'}`:'柱のある場面にカーソルを置くと書けます';
-  } else if(sc){ $('memoScene').textContent=`${cur+1}　${sc.text||'（柱の文言なし）'}`; }
   /* 登場人物 */
   if(tab==='people') updatePeople(items);
   if(notesFor!==curId){ notesFor=curId; document.querySelectorAll('.nbox textarea').forEach(el=>{ el.value=notes[el.dataset.key]||''; }); }
@@ -1031,12 +1009,6 @@ function jumpTo(i){
   anchor=null; caret=Math.min(i,doc.length); lastKind=''; render(); showCaretPage();
   ta.focus({preventScroll:true});
 }
-$('memoText').addEventListener('input',()=>{
-  if(memoPid==null) return;
-  const v=$('memoText').value;
-  if(v) memos[memoPid]=v; else delete memos[memoPid];
-  markDirty(); saveCache(); updatePanels();
-});
 function updatePeople(items){
   const ppl=new Map(); let scene=0, k=0;
   for(const x of P){
