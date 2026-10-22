@@ -216,7 +216,7 @@ html.nopno .pno{display:none}
 .small.err{color:var(--accent)}
 
 #sizeSel button{min-width:64px}
-#sizeSel button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+#sizeSel button[aria-pressed="true"],#themeSel button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
 
 #bGrid[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
 html.nogrid .col,html.nogrid .frame{display:none}
@@ -238,6 +238,7 @@ html.nogrid .col,html.nogrid .frame{display:none}
 <script>if('serviceWorker' in navigator){ addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{})); }</script>
 </head>
 <body>
+<script>try{ const t=localStorage.getItem('genko-theme'); if(t==='light'||t==='dark') document.documentElement.setAttribute('data-theme',t); }catch(e){}</script>
 <header class="bar">
   <input id="title" type="text" placeholder="題名（未設定）" autocomplete="off" spellcheck="false" aria-label="題名">
   <div class="tools" id="tools">
@@ -343,6 +344,15 @@ html.nogrid .col,html.nogrid .frame{display:none}
         <button type="button" data-size="s" aria-pressed="false">小</button>
       </div>
       <div class="small">原稿用紙のマス目の大きさはそのままで、マスの中の文字の大きさだけを変えます。PDFの文字の大きさは変わりません。</div>
+    </div>
+    <div class="pgroup">
+      <h3>配色（この端末）</h3>
+      <div class="pbtns" id="themeSel" role="group" aria-label="配色">
+        <button type="button" data-theme="auto" aria-pressed="false">端末の設定に合わせる</button>
+        <button type="button" data-theme="light" aria-pressed="false">ライト</button>
+        <button type="button" data-theme="dark" aria-pressed="false">ダーク</button>
+      </div>
+      <div class="small">画面の色だけを切り替えます。PDFの色は変わりません。</div>
     </div>
     <div class="pgroup" id="syncGroup">
       <h3>同期（MacとiPadの間）</h3>
@@ -1636,6 +1646,25 @@ try{ showPno=localStorage.getItem('genko-pno')!=='0'; }catch(e){}
 function applyPno(){ document.documentElement.classList.toggle('nopno',!showPno); $('pPno').checked=showPno; }
 $('pPno').addEventListener('change',()=>{ showPno=$('pPno').checked; try{ localStorage.setItem('genko-pno',showPno?'1':'0'); }catch(e){} applyPno(); });
 applyPno();
+
+/* 配色：端末の設定に合わせる／ライト／ダーク（この端末に記憶） */
+let themeKey='auto';
+try{ const t=localStorage.getItem('genko-theme'); if(t==='light'||t==='dark') themeKey=t; }catch(e){}
+const darkMQ=window.matchMedia?matchMedia('(prefers-color-scheme: dark)'):null;
+function applyTheme(){
+  const root=document.documentElement;
+  if(themeKey==='auto') root.removeAttribute('data-theme'); else root.setAttribute('data-theme',themeKey);
+  document.querySelectorAll('#themeSel button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.theme===themeKey)));
+  const meta=document.querySelector('meta[name="theme-color"]');
+  if(meta){ const dark=themeKey==='dark'||(themeKey==='auto'&&darkMQ&&darkMQ.matches); meta.setAttribute('content',dark?'#181D1E':'#F5F6F6'); }
+}
+$('themeSel').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-theme]'); if(!b) return;
+  themeKey=b.dataset.theme; try{ localStorage.setItem('genko-theme',themeKey); }catch(e){}
+  applyTheme();
+});
+if(darkMQ&&darkMQ.addEventListener) darkMQ.addEventListener('change',applyTheme);
+applyTheme();
 
 function applySizeUI(){ document.querySelectorAll('#sizeSel button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.size===sizeKey))); }
 $('sizeSel').addEventListener('click',e=>{
