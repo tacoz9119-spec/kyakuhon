@@ -108,19 +108,19 @@ main{flex:1 1 auto;min-width:0;padding-left:max(16px,env(safe-area-inset-left,0p
   background:transparent;border:0;border-radius:6px;padding:6px 6px}
 #olList button:hover,#pplList .pn:hover,#fList button:hover{background:var(--desk)}
 #olList .n{grid-row:1/4;font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:3px}
-#olList .t{font-family:var(--f-text);font-size:1em;line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-all}
+#olList .t{font-family:var(--f-ui);font-size:1em;line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-all}
 #olList .m{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
 #olList li.cur button{background:var(--desk)}
 #olList li.cur .t{font-weight:600}
 #olList li.cur .n{color:var(--accent);font-weight:700}
 #pplList li{display:flex;flex-direction:column;gap:3px;padding:4px 0;border-bottom:1px solid var(--edge)}
 #pplList .pn{display:flex;justify-content:space-between;align-items:baseline;gap:8px;background:transparent;border:0;border-radius:6px;padding:5px 6px;text-align:left}
-#pplList .nm{font-family:var(--f-text);font-size:14px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#pplList .nm{font-family:var(--f-ui);font-size:14px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #pplList .m{flex:0 0 auto;font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums}
 .chips{display:flex;flex-wrap:wrap;gap:4px;padding:0 6px 4px}
 .chips button{font-size:11px!important;min-height:24px;padding:0 7px;border:1px solid var(--edge);border-radius:999px;background:var(--paper);font-variant-numeric:tabular-nums}
 .fbox{display:flex;flex-direction:column;gap:6px}
-.fbox input{width:100%;box-sizing:border-box;font:inherit;font-family:var(--f-text);font-size:15px;color:var(--ink);background:var(--paper);
+.fbox input{width:100%;box-sizing:border-box;font:inherit;font-family:var(--f-ui);font-size:15px;color:var(--ink);background:var(--paper);
   border:1px solid var(--edge);border-radius:6px;padding:7px 8px}
 .fbox input:focus{outline:2px solid var(--accent);outline-offset:0}
 .frow{display:flex;gap:6px;align-items:center}
@@ -129,7 +129,7 @@ main{flex:1 1 auto;min-width:0;padding-left:max(16px,env(safe-area-inset-left,0p
 #fCount{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;margin-left:auto}
 #fList button{width:100%;display:flex;flex-direction:column;gap:1px;text-align:left;background:transparent;border:0;border-radius:6px;padding:5px 6px}
 #fList .m{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
-#fList .s{font-family:var(--f-text);font-size:12px;line-height:1.45;word-break:break-all}
+#fList .s{font-family:var(--f-ui);font-size:12px;line-height:1.45;word-break:break-all}
 #fList mark{background:var(--hit);color:inherit;border-radius:2px}
 #fList li.cur button{background:var(--desk)}
 @media (max-width:719px){#outline{display:none}}
@@ -256,6 +256,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
     <button id="bUndo" class="ico" type="button" disabled aria-label="元に戻す" title="元に戻す"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
     <button id="bRedo" class="ico" type="button" disabled aria-label="やり直す" title="やり直す"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
     <span class="sep"></span>
+    <button id="bFont" type="button">フォント</button>
     <button id="bDocs" type="button">その他</button>
   </div>
   <div class="stats" aria-live="polite">
@@ -340,27 +341,6 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <label class="chk"><input type="checkbox" id="pGrid" checked> 原稿用紙のマス目を表示する（画面のみ。PDFには出力されません）</label>
     </div>
     <div class="pgroup">
-      <h3>文字の大きさ（この端末）</h3>
-      <div class="pbtns" id="sizeSel" role="group" aria-label="文字の大きさ">
-        <button type="button" data-size="l" aria-pressed="false">大</button>
-        <button type="button" data-size="m" aria-pressed="false">中</button>
-        <button type="button" data-size="s" aria-pressed="false">小</button>
-      </div>
-      <div class="small">原稿用紙のマス目の大きさはそのままで、マスの中の文字の大きさだけを変えます。PDFの文字の大きさは変わりません。</div>
-    </div>
-    <div class="pgroup">
-      <h3>書体（この端末）</h3>
-      <div class="pbtns" id="fontSel" role="group" aria-label="書体">
-        <button type="button" data-font="mincho" aria-pressed="false">明朝体</button>
-        <button type="button" data-font="gothic" aria-pressed="false">ゴシック体</button>
-      </div>
-      <div class="pbtns" id="weightSel" role="group" aria-label="文字の太さ">
-        <button type="button" data-weight="light" aria-pressed="false">細め</button>
-        <button type="button" data-weight="regular" aria-pressed="false">標準</button>
-      </div>
-      <div class="small">原稿用紙の文字の書体と太さを切り替えます。PDFも、ここで選んだ書体と太さで出力します。明朝体は源ノ明朝と同じデザインのNoto Serif JP、ゴシック体は源ノ角ゴシックと同じデザインのNoto Sans JPです。</div>
-    </div>
-    <div class="pgroup">
       <h3>配色（この端末）</h3>
       <div class="pbtns" id="themeSel" role="group" aria-label="配色">
         <button type="button" data-theme="auto" aria-pressed="false">端末の設定に合わせる</button>
@@ -415,6 +395,33 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
+  </div>
+</div>
+<div class="scrim" id="fontPanel" hidden>
+  <div class="panel" role="dialog" aria-labelledby="fontTitle">
+    <div class="phead"><h2 id="fontTitle">フォント</h2><button id="fpClose" type="button">閉じる</button></div>
+    <div class="pgroup">
+      <h3>文字の大きさ</h3>
+      <div class="pbtns" id="sizeSel" role="group" aria-label="文字の大きさ">
+        <button type="button" data-size="l" aria-pressed="false">大</button>
+        <button type="button" data-size="m" aria-pressed="false">中</button>
+        <button type="button" data-size="s" aria-pressed="false">小</button>
+      </div>
+      <div class="small">原稿用紙のマス目の大きさはそのままで、マスの中の文字の大きさだけを変えます。PDFの文字の大きさは変わりません。</div>
+    </div>
+    <div class="pgroup">
+      <h3>書体と太さ</h3>
+      <div class="pbtns" id="fontSel" role="group" aria-label="書体">
+        <button type="button" data-font="mincho" aria-pressed="false">明朝体</button>
+        <button type="button" data-font="gothic" aria-pressed="false">ゴシック体</button>
+      </div>
+      <div class="pbtns" id="weightSel" role="group" aria-label="文字の太さ">
+        <button type="button" data-weight="light" aria-pressed="false">細め</button>
+        <button type="button" data-weight="regular" aria-pressed="false">標準</button>
+      </div>
+      <div class="small">原稿用紙の文字の書体と太さを切り替えます。PDFも、ここで選んだ書体と太さで出力します。明朝体は源ノ明朝と同じデザインのNoto Serif JP、ゴシック体は源ノ角ゴシックと同じデザインのNoto Sans JPです。</div>
+    </div>
+    <div class="small">フォントの設定は、この端末に記憶されます。</div>
   </div>
 </div>
 <input type="file" id="fileIn" accept=".txt,text/plain" hidden>
@@ -1499,6 +1506,9 @@ $('bDocs').addEventListener('click',async()=>{
   $('docsPanel').hidden=false; renderList();
 });
 $('pClose').addEventListener('click',()=>$('docsPanel').hidden=true);
+$('bFont').addEventListener('click',()=>{ ta.blur(); $('fontPanel').hidden=false; });
+$('fpClose').addEventListener('click',()=>$('fontPanel').hidden=true);
+$('fontPanel').addEventListener('click',e=>{ if(e.target===$('fontPanel')) $('fontPanel').hidden=true; });
 /* ログインの入力欄は、「その他」を開いてログイン画面を表示している間だけ置く。
    ページにパスワード欄があると、iPadのSafariが本文の入力中にもパスワードの候補を出すため */
 const SY_FIELDS='<input id="syMail" type="email" placeholder="メールアドレス" autocomplete="username" aria-label="メールアドレス">'+
