@@ -56,7 +56,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bar);border-bottom:1px solid var(--edge);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:8px;
   display:flex;align-items:center;gap:10px}
-#title{flex:0 0 min(17.5em,38vw);min-width:90px;font-family:var(--f-ui);font-size:18px;font-weight:600;background:transparent;border:0;
+#title{flex:0 0 min(17.5em,38vw);min-width:90px;font-family:var(--f-ui);font-size:18px;font-weight:400;background:transparent;border:0;
   border-bottom:1px solid var(--edge);color:var(--ink);padding:4px 0;text-overflow:ellipsis}
 #title::placeholder{color:var(--muted);font-weight:400}
 #title:focus{outline:none;border-bottom-color:var(--rule)}
@@ -257,6 +257,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
     <button id="bRedo" class="ico" type="button" disabled aria-label="やり直す" title="やり直す"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
     <span class="sep"></span>
     <button id="bFont" type="button">フォント</button>
+    <button id="bLook" type="button">外見</button>
     <button id="bDocs" type="button">その他</button>
   </div>
   <div class="stats" aria-live="polite">
@@ -332,23 +333,6 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <label class="chk"><input type="checkbox" id="pSyn"> あらすじのページを付ける</label>
       <div class="small">表紙・登場人物表・あらすじの順に本文の前に置き、それぞれ新しいページから始めます。ページ番号は付けず、本文の枚数にも数えません。登場人物表やあらすじを外すと、その内容も消えます（「元に戻す」で復元できます）。</div>
     </div>
-    <div class="pgroup">
-      <h3>ページ番号</h3>
-      <label class="chk"><input type="checkbox" id="pPno" checked> ページ番号を表示する（画面とPDFの両方）</label>
-    </div>
-    <div class="pgroup">
-      <h3>マス目（この端末）</h3>
-      <label class="chk"><input type="checkbox" id="pGrid" checked> 原稿用紙のマス目を表示する（画面のみ。PDFには出力されません）</label>
-    </div>
-    <div class="pgroup">
-      <h3>配色（この端末）</h3>
-      <div class="pbtns" id="themeSel" role="group" aria-label="配色">
-        <button type="button" data-theme="auto" aria-pressed="false">端末の設定に合わせる</button>
-        <button type="button" data-theme="light" aria-pressed="false">ライト</button>
-        <button type="button" data-theme="dark" aria-pressed="false">ダーク</button>
-      </div>
-      <div class="small">画面の色だけを切り替えます。PDFの色は変わりません。</div>
-    </div>
     <div class="pgroup" id="syncGroup">
       <h3>同期（MacとiPadの間）</h3>
       <div class="small" id="syncOff" hidden>同期の設定（firebase-config.js）がまだのため、原稿はこの端末にだけ保存されます。設定の方法は手順書をご覧ください。</div>
@@ -395,6 +379,29 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
+  </div>
+</div>
+<div class="scrim" id="lookPanel" hidden>
+  <div class="panel" role="dialog" aria-labelledby="lookTitle">
+    <div class="phead"><h2 id="lookTitle">外見</h2><button id="lpClose" type="button">閉じる</button></div>
+    <div class="pgroup">
+      <h3>ページ番号</h3>
+      <label class="chk"><input type="checkbox" id="pPno" checked> ページ番号を表示する（画面とPDFの両方）</label>
+    </div>
+    <div class="pgroup">
+      <h3>マス目</h3>
+      <label class="chk"><input type="checkbox" id="pGrid" checked> 原稿用紙のマス目を表示する（画面のみ。PDFには出力されません）</label>
+    </div>
+    <div class="pgroup">
+      <h3>配色</h3>
+      <div class="pbtns" id="themeSel" role="group" aria-label="配色">
+        <button type="button" data-theme="auto" aria-pressed="false">端末の設定に合わせる</button>
+        <button type="button" data-theme="light" aria-pressed="false">ライト</button>
+        <button type="button" data-theme="dark" aria-pressed="false">ダーク</button>
+      </div>
+      <div class="small">画面の色だけを切り替えます。PDFの色は変わりません。</div>
+    </div>
+    <div class="small">外見の設定は、この端末に記憶されます。</div>
   </div>
 </div>
 <div class="scrim" id="fontPanel" hidden>
@@ -1507,6 +1514,9 @@ $('bDocs').addEventListener('click',async()=>{
 });
 $('pClose').addEventListener('click',()=>$('docsPanel').hidden=true);
 $('bFont').addEventListener('click',()=>{ ta.blur(); $('fontPanel').hidden=false; });
+$('bLook').addEventListener('click',()=>{ ta.blur(); $('lookPanel').hidden=false; });
+$('lpClose').addEventListener('click',()=>$('lookPanel').hidden=true);
+$('lookPanel').addEventListener('click',e=>{ if(e.target===$('lookPanel')) $('lookPanel').hidden=true; });
 $('fpClose').addEventListener('click',()=>$('fontPanel').hidden=true);
 $('fontPanel').addEventListener('click',e=>{ if(e.target===$('fontPanel')) $('fontPanel').hidden=true; });
 /* ログインの入力欄は、「その他」を開いてログイン画面を表示している間だけ置く。
