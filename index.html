@@ -56,7 +56,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bar);border-bottom:1px solid var(--edge);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:8px;
   display:flex;align-items:center;gap:10px}
-#title{flex:0 0 min(17.5em,38vw);min-width:90px;font-family:var(--f-text);font-size:18px;font-weight:600;background:transparent;border:0;
+#title{flex:0 0 min(17.5em,38vw);min-width:90px;font-family:var(--f-ui);font-size:18px;font-weight:600;background:transparent;border:0;
   border-bottom:1px solid var(--edge);color:var(--ink);padding:4px 0;text-overflow:ellipsis}
 #title::placeholder{color:var(--muted);font-weight:400}
 #title:focus{outline:none;border-bottom-color:var(--rule)}
@@ -192,7 +192,7 @@ html.ipad #ta.composing{background:var(--paper);color:var(--ink)}
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .panel{background:var(--paper);color:var(--ink);border-radius:12px;width:min(600px,100%);max-height:calc(100vh - 64px);overflow:auto;
   display:flex;flex-direction:column;gap:16px;padding:20px;box-shadow:var(--shadow);box-sizing:border-box}
-.panel h2{margin:0;font-family:var(--f-text);font-size:22px;font-weight:600}
+.panel h2{margin:0;font-family:var(--f-ui);font-size:22px;font-weight:600}
 .phead{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .pgroup{display:flex;flex-direction:column;gap:8px}
 .pgroup h3{margin:0;font-size:12px;letter-spacing:.08em;color:var(--muted);font-weight:700}
@@ -419,7 +419,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
         <button type="button" data-weight="light" aria-pressed="false">細め</button>
         <button type="button" data-weight="regular" aria-pressed="false">標準</button>
       </div>
-      <div class="small">原稿用紙の文字の書体と太さを切り替えます。PDFも、ここで選んだ書体と太さで出力します。明朝体は源ノ明朝と同じデザインのNoto Serif JP、ゴシック体は源ノ角ゴシックと同じデザインのNoto Sans JPです。</div>
+      <div class="small">原稿用紙の文字の書体と太さを切り替えます。PDFも、ここで選んだ書体と太さで出力します。</div>
     </div>
     <div class="small">フォントの設定は、この端末に記憶されます。</div>
   </div>
