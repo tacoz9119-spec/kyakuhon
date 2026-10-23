@@ -205,6 +205,8 @@ html.nopno .pno{display:none}
 .sybox{display:flex;flex-direction:column;gap:8px}
 .sybox input{font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--edge);border-radius:7px;background:var(--paper);color:var(--ink)}
 .sybox input:focus{outline:2px solid var(--accent);outline-offset:0}
+#syFields{display:flex;flex-direction:column;gap:8px}
+#syFields:empty{display:none}
 .small.err{color:var(--accent)}
 
 #sizeSel button{min-width:64px}
@@ -352,8 +354,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small" id="syncOff" hidden>同期の設定（firebase-config.js）がまだのため、原稿はこの端末にだけ保存されます。設定の方法は手順書をご覧ください。</div>
       <div id="syncOut" class="sybox" hidden>
         <div class="small">MacとiPadで同じメールアドレスとパスワードでログインすると、原稿が自動で同期されます。初めての場合は、1台目で「新規登録」をしてください。</div>
-        <input id="syMail" type="email" placeholder="メールアドレス" autocomplete="username" aria-label="メールアドレス">
-        <input id="syPass" type="password" placeholder="パスワード（6文字以上）" autocomplete="current-password" aria-label="パスワード">
+        <div id="syFields"></div>
         <div class="pbtns">
           <button id="syLogin" type="button" class="solid">ログイン</button>
           <button id="sySignup" type="button">新規登録</button>
@@ -1471,6 +1472,17 @@ $('bDocs').addEventListener('click',async()=>{
   $('docsPanel').hidden=false; renderList();
 });
 $('pClose').addEventListener('click',()=>$('docsPanel').hidden=true);
+/* ログインの入力欄は、「その他」を開いてログイン画面を表示している間だけ置く。
+   ページにパスワード欄があると、iPadのSafariが本文の入力中にもパスワードの候補を出すため */
+const SY_FIELDS='<input id="syMail" type="email" placeholder="メールアドレス" autocomplete="username" aria-label="メールアドレス">'+
+  '<input id="syPass" type="password" placeholder="パスワード（6文字以上）" autocomplete="current-password" aria-label="パスワード">';
+function syncFields(){
+  const want=!$('docsPanel').hidden&&!$('syncOut').hidden, box=$('syFields');
+  if(want&&!box.firstChild) box.innerHTML=SY_FIELDS;
+  else if(!want&&box.firstChild) box.innerHTML='';
+}
+new MutationObserver(syncFields).observe($('docsPanel'),{attributes:true,attributeFilter:['hidden']});
+new MutationObserver(syncFields).observe($('syncOut'),{attributes:true,attributeFilter:['hidden']});
 $('docsPanel').addEventListener('click',e=>{ if(e.target===$('docsPanel')) $('docsPanel').hidden=true; });
 $('docList').addEventListener('click',async e=>{
   const b=e.target.closest('button[data-id]'); if(!b) return;
