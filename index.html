@@ -42,6 +42,14 @@ img{max-width:100%}
   --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.3); color-scheme:dark }
 
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+/* 原稿の書体：明朝体（Noto Serif JP）／ゴシック体（端末に入っているゴシック体） */
+@font-face{font-family:"GK Serif";src:url("notoserifjp-300-screen.woff2") format("woff2");font-weight:300;font-display:swap}
+@font-face{font-family:"GK Serif";src:url("notoserifjp-400-screen.woff2") format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"GK Sans";src:url("notosansjp-300-screen.woff2") format("woff2");font-weight:300;font-display:swap}
+@font-face{font-family:"GK Sans";src:url("notosansjp-400-screen.woff2") format("woff2");font-weight:400;font-display:swap}
+:root{--f-ms:"GK Serif","Hiragino Mincho ProN","Yu Mincho","YuMincho",serif;--f-w:300}
+html.gothic{--f-ms:"GK Sans","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","YuGothic",sans-serif}
+html.wregular{--f-w:400}
 body{background:var(--desk);color:var(--ink);font-family:var(--f-ui)}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bar)}
 
@@ -128,7 +136,7 @@ main{flex:1 1 auto;min-width:0;padding-left:max(16px,env(safe-area-inset-left,0p
 #hits{position:absolute;inset:0;pointer-events:none;z-index:2}
 #hits div{position:absolute;background:var(--hit);border-radius:2px}
 .page.cover{display:flex;align-items:flex-start;justify-content:center;cursor:pointer;box-sizing:border-box;padding-top:calc(var(--pad) + var(--cell)*1.125*3)}
-.ctitle{writing-mode:vertical-rl;text-orientation:mixed;font-family:var(--f-text);font-size:calc(var(--cell)*.78*1.125*var(--fs,1));
+.ctitle{writing-mode:vertical-rl;text-orientation:mixed;font-family:var(--f-ms);font-weight:var(--f-w);font-size:calc(var(--cell)*.78*1.125*var(--fs,1));
   letter-spacing:.22em;line-height:1.7;max-height:calc(var(--cell)*16.5);color:var(--ink)}
 .ctitle:empty::before{content:"（題名未設定）";color:var(--muted)}
 .clabel{position:absolute;left:0;right:0;bottom:calc(var(--cell)*.8);text-align:center;font-size:max(11px,calc(var(--cell)*.36));color:var(--muted)}
@@ -150,7 +158,7 @@ main{flex:1 1 auto;min-width:0;padding-left:max(16px,env(safe-area-inset-left,0p
 .ch{position:absolute;width:var(--cell);height:var(--cell);
   right:calc(var(--padx,var(--pad)) + var(--c)*var(--step));top:calc(var(--pad) + var(--r)*var(--cell));
   writing-mode:vertical-rl;text-orientation:mixed;display:flex;align-items:center;justify-content:center;
-  font-family:var(--f-text);font-size:calc(var(--cell)*.78*var(--fs,1));line-height:1;color:var(--ink);pointer-events:none}
+  font-family:var(--f-ms);font-weight:var(--f-w);font-size:calc(var(--cell)*.78*var(--fs,1));line-height:1;color:var(--ink);pointer-events:none}
 .ch.up{text-orientation:upright}
 .ch.two{font-size:calc(var(--cell)*.5*var(--fs,1))}
 
@@ -163,7 +171,7 @@ main{flex:1 1 auto;min-width:0;padding-left:max(16px,env(safe-area-inset-left,0p
 
 #ta{position:absolute;z-index:6;writing-mode:horizontal-tb;border:0;padding:0;margin:0;resize:none;overflow:hidden;
   background:transparent;color:transparent;caret-color:transparent;outline:none;pointer-events:none;
-  font-family:var(--f-text);font-size:max(16px,calc(var(--cell)*.78*var(--fs,1)));line-height:1.3;
+  font-family:var(--f-ms);font-weight:var(--f-w);font-size:max(16px,calc(var(--cell)*.78*var(--fs,1)));line-height:1.3;
   -webkit-user-select:text;user-select:text}
 /* iPad：入力欄の文字色を透明にすると、選択中の変換候補まで透明になる。入力欄は普通の色で見せ（確定のたび空に戻る）、カーソルもiPad標準のものを使う */
 html.ipad #ta{writing-mode:vertical-rl;line-height:var(--step);color:var(--ink);caret-color:var(--ink);
@@ -173,7 +181,7 @@ html.ipad #caret{display:none}
 #ta.clip{color:transparent!important}
 html.ipad #ta.composing{background:var(--paper);color:var(--ink)}
 #ime{position:absolute;z-index:7;min-width:var(--cell);writing-mode:vertical-rl;text-orientation:mixed;white-space:pre;pointer-events:none;
-  font-family:var(--f-text);font-size:calc(var(--cell)*.78*var(--fs,1));line-height:var(--cell);letter-spacing:calc(var(--cell) - var(--cell)*.78*var(--fs,1));
+  font-family:var(--f-ms);font-weight:var(--f-w);font-size:calc(var(--cell)*.78*var(--fs,1));line-height:var(--cell);letter-spacing:calc(var(--cell) - var(--cell)*.78*var(--fs,1));
   background:var(--paper);color:var(--ink);border-radius:2px;text-decoration:underline;text-decoration-color:var(--accent)}
 
 #toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;
@@ -210,7 +218,7 @@ html.nopno .pno{display:none}
 .small.err{color:var(--accent)}
 
 #sizeSel button{min-width:64px}
-#sizeSel button[aria-pressed="true"],#themeSel button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+#sizeSel button[aria-pressed="true"],#themeSel button[aria-pressed="true"],#fontSel button[aria-pressed="true"],#weightSel button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
 
 html.nogrid .col,html.nogrid .frame{display:none}
 
@@ -235,7 +243,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
 <script>if('serviceWorker' in navigator){ addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{})); }</script>
 </head>
 <body>
-<script>try{ const t=localStorage.getItem('genko-theme'); if(t==='light'||t==='dark') document.documentElement.setAttribute('data-theme',t); }catch(e){}</script>
+<script>try{ const t=localStorage.getItem('genko-theme'); if(t==='light'||t==='dark') document.documentElement.setAttribute('data-theme',t); if(localStorage.getItem('genko-font')==='gothic') document.documentElement.classList.add('gothic'); if(localStorage.getItem('genko-weight')==='regular') document.documentElement.classList.add('wregular'); }catch(e){}</script>
 <header class="bar">
   <input id="title" type="text" placeholder="題名（未設定）" autocomplete="off" spellcheck="false" aria-label="題名">
   <div class="tools" id="tools">
@@ -341,6 +349,18 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">原稿用紙のマス目の大きさはそのままで、マスの中の文字の大きさだけを変えます。PDFの文字の大きさは変わりません。</div>
     </div>
     <div class="pgroup">
+      <h3>書体（この端末）</h3>
+      <div class="pbtns" id="fontSel" role="group" aria-label="書体">
+        <button type="button" data-font="mincho" aria-pressed="false">明朝体</button>
+        <button type="button" data-font="gothic" aria-pressed="false">ゴシック体</button>
+      </div>
+      <div class="pbtns" id="weightSel" role="group" aria-label="文字の太さ">
+        <button type="button" data-weight="light" aria-pressed="false">細め</button>
+        <button type="button" data-weight="regular" aria-pressed="false">標準</button>
+      </div>
+      <div class="small">原稿用紙の文字の書体と太さを切り替えます。PDFも、ここで選んだ書体と太さで出力します。明朝体は源ノ明朝と同じデザインのNoto Serif JP、ゴシック体は源ノ角ゴシックと同じデザインのNoto Sans JPです。</div>
+    </div>
+    <div class="pgroup">
       <h3>配色（この端末）</h3>
       <div class="pbtns" id="themeSel" role="group" aria-label="配色">
         <button type="button" data-theme="auto" aria-pressed="false">端末の設定に合わせる</button>
@@ -394,7 +414,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       </div>
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
-    <div class="small">画面とPDFの書体：Noto Serif JP Light（SIL Open Font License 1.1）</div>
+    <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
   </div>
 </div>
 <input type="file" id="fileIn" accept=".txt,text/plain" hidden>
@@ -804,9 +824,16 @@ function colRight(lc){ return G.padx+lc*G.step; }
 const zoom='fit';  /* 常に1ページ全体を表示領域に収める */
 function viewH(){ return window.innerHeight; }  /* 画面キーボードの出し入れで縮まないよう、表示領域全体の高さを使う */
 /* 文字の大きさ（この端末に記憶）：マス目の大きさはそのままで、マスの中の文字だけを大・中・小で変える */
-const SIZE_SCALE={l:0.85,m:0.72,s:0.6};   /* マスに対する文字の大きさの割合（1＝マスの約8割） */
-let sizeKey='l';
-try{ const v=localStorage.getItem('genko-size'); if(v==='m'||v==='s') sizeKey=v; }catch(e){}
+const SIZE_SCALE={l:1,m:0.85,s:0.72};   /* マスに対する文字の大きさの割合（1＝マスの約8割） */
+let sizeKey='m';
+try{
+  const v=localStorage.getItem('genko-size2');
+  if(v==='l'||v==='m'||v==='s') sizeKey=v;
+  else{ /* 以前の設定（一段階小さい割合）を、同じ大きさの新しい段階に置き換える */
+    const o=localStorage.getItem('genko-size'); sizeKey=o==='m'||o==='s'?'s':'m';
+    localStorage.setItem('genko-size2',sizeKey);
+  }
+}catch(e){}
 function resize(){
   const root=document.documentElement;
   const avail=sheets.clientWidth;
@@ -1592,19 +1619,22 @@ $('syLogout').addEventListener('click',async()=>{
 });
 
 /* ---------- PDF ---------- */
-let fontB64=null;
+const fontB64s={};
+/* PDFの書体：画面で選んだ書体と太さに合わせる */
+const pdfFontFile=()=>(fontKey==='gothic'?'notosansjp':'notoserifjp')+'-'+(weightKey==='regular'?'400':'300')+'-v.ttf';
 function loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('script')); document.head.appendChild(s); }); }
 async function ensurePdfKit(){
   if(!(window.jspdf&&window.jspdf.jsPDF)) await loadScript('jspdf.umd.min.js');
-  if(!fontB64){
-    const resp=await fetch('notoserifjp-300-v.ttf'); if(!resp.ok) throw new Error('font');
+  const file=pdfFontFile();
+  if(!fontB64s[file]){
+    const resp=await fetch(file); if(!resp.ok) throw new Error('font');
     const blob=await resp.blob();
-    fontB64=await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(',')[1]); r.onerror=rej; r.readAsDataURL(blob); });
+    fontB64s[file]=await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(',')[1]); r.onerror=rej; r.readAsDataURL(blob); });
   }
 }
 function buildPdf(){
   const pdf=new window.jspdf.jsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true});
-  pdf.addFileToVFS('notoserifjp-300-v.ttf',fontB64); pdf.addFont('notoserifjp-300-v.ttf','Mincho','normal','Identity-H'); pdf.setFont('Mincho','normal');
+  const ff=pdfFontFile(); pdf.addFileToVFS(ff,fontB64s[ff]); pdf.addFont(ff,'Genko','normal','Identity-H'); pdf.setFont('Genko','normal');
   pdf.setProperties({title:title||'無題'});
   /* 文字は約16pt（マス6.88mm）。20字分の高さを上下中央に置き、左右は行間で全体の横幅（198.3mm）を保つ */
   const PW=297, PH=210, cs=6.88, gridW=198.3, step=(gridW-cs)/(PER-1), top=(PH-ROWS*cs)/2, right=(PW+gridW)/2;
@@ -1687,10 +1717,33 @@ $('themeSel').addEventListener('click',e=>{
 if(darkMQ&&darkMQ.addEventListener) darkMQ.addEventListener('change',applyTheme);
 applyTheme();
 
+/* 書体：明朝体／ゴシック体（この端末に記憶） */
+let fontKey='mincho';
+try{ if(localStorage.getItem('genko-font')==='gothic') fontKey='gothic'; }catch(e){}
+let weightKey='light';
+try{ if(localStorage.getItem('genko-weight')==='regular') weightKey='regular'; }catch(e){}
+function applyFont(){
+  document.documentElement.classList.toggle('gothic',fontKey==='gothic');
+  document.documentElement.classList.toggle('wregular',weightKey==='regular');
+  document.querySelectorAll('#fontSel button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.font===fontKey)));
+  document.querySelectorAll('#weightSel button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.weight===weightKey)));
+}
+$('weightSel').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-weight]'); if(!b) return;
+  weightKey=b.dataset.weight; try{ localStorage.setItem('genko-weight',weightKey); }catch(err){}
+  applyFont(); if(typeof fitTA==='function') fitTA();
+});
+$('fontSel').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-font]'); if(!b) return;
+  fontKey=b.dataset.font; try{ localStorage.setItem('genko-font',fontKey); }catch(err){}
+  applyFont(); if(typeof fitTA==='function') fitTA();
+});
+applyFont();
+
 function applySizeUI(){ document.querySelectorAll('#sizeSel button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.size===sizeKey))); }
 $('sizeSel').addEventListener('click',e=>{
   const b=e.target.closest('button[data-size]'); if(!b) return;
-  sizeKey=b.dataset.size; try{ localStorage.setItem('genko-size',sizeKey); }catch(err){}
+  sizeKey=b.dataset.size; try{ localStorage.setItem('genko-size2',sizeKey); }catch(err){}
   applySizeUI(); resize();
 });
 applySizeUI();
