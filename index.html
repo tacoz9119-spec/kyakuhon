@@ -136,7 +136,7 @@ main{flex:1 1 auto;min-width:0;padding-left:max(16px,env(safe-area-inset-left,0p
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 
 .page{position:relative;flex:0 0 auto;background:var(--paper);box-shadow:var(--shadow);cursor:text;
-  width:calc(var(--padx,var(--pad))*2 + var(--step)*19 + var(--cell));height:calc(var(--pad) + var(--cell)*23)}
+  width:calc(var(--padx,var(--pad))*2 + var(--step)*19 + var(--cell));height:calc(var(--pad) + var(--cell)*21.5)}
 .frame{position:absolute;pointer-events:none;border:1.5px solid var(--rule);
   top:calc(var(--pad) - 5px);right:calc(var(--padx,var(--pad)) - 5px);
   width:calc(var(--step)*19 + var(--cell) + 7px);height:calc(var(--cell)*20 + 7px)}
@@ -144,7 +144,7 @@ main{flex:1 1 auto;min-width:0;padding-left:max(16px,env(safe-area-inset-left,0p
   right:calc(var(--padx,var(--pad)) + var(--c)*var(--step));
   box-shadow:inset 0 0 0 1px var(--rule-soft);
   background-image:linear-gradient(to bottom,var(--rule-soft) 1px,transparent 1px);background-size:100% var(--cell)}
-.pno{position:absolute;left:0;right:0;text-align:center;top:calc(var(--pad) + var(--cell)*21.4);
+.pno{position:absolute;left:0;right:0;text-align:center;top:calc(var(--pad) + var(--cell)*20.65);
   font-size:max(11px,calc(var(--cell)*.4));color:var(--muted);font-variant-numeric:tabular-nums}
 
 .ch{position:absolute;width:var(--cell);height:var(--cell);
@@ -813,7 +813,7 @@ function resize(){
   const barH=document.querySelector('.bar').offsetHeight;
   root.style.setProperty('--barh',barH+'px');
   const byW=avail/(2+1.22*19+1);
-  const byH=(viewH()-barH-24)/24;   /* ページの高さ＝余白1マス＋20行＋ぶら下げ・ページ番号3マス */
+  const byH=(viewH()-barH-24)/22.5;   /* ページの高さ＝余白1マス＋20行＋ぶら下げ・ページ番号1.5マス */
   /* マスの大きさは整数のピクセルにする（小数だと、iPadのSafariで横罫線の位置がずれ、最下段の線が二重に見える） */
   CELL=Math.max(10,Math.min(56,Math.floor(Math.min(byW,byH))));
   /* 左右の余白：画面の幅に余裕があれば、原稿用紙の左右に最大3マス分の余白を取る（マス目の大きさは変えない） */
