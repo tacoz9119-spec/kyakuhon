@@ -286,8 +286,8 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
     <button type="button" role="tab" data-tab="scenes" aria-selected="true">柱一覧</button>
     <button type="button" role="tab" data-tab="people" aria-selected="false">人物</button>
     <button type="button" role="tab" data-tab="notes" aria-selected="false">メモ</button>
-    <button type="button" role="tab" data-tab="find" aria-selected="false">検索</button>
     <button type="button" role="tab" data-tab="lint" aria-selected="false">校正</button>
+    <button type="button" role="tab" data-tab="find" aria-selected="false">検索</button>
   </div>
 
   <section class="tab" id="tabScenes">
@@ -310,8 +310,8 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
   <section class="tab" id="tabLint" hidden>
     <div class="tabhead"><span id="lCount"></span><span class="small">原稿の順</span></div>
     <ol id="lList"></ol>
-    <p class="small" id="lEmpty" hidden>句読点やカギ括弧の重複、カッコの閉じ忘れは見つかりません。</p>
-    <p class="small">句読点（。、）とカギ括弧（「」『』）が続けて打たれた箇所と、段落の中で閉じていないカッコ（「」『』（））を表示します。</p>
+    <p class="small" id="lEmpty" hidden>誤りは見つかりません。</p>
+    <p class="small">句読点やカギ括弧の重複、閉じていないカッコ、半角文字、柱・ト書き・セリフの書式の誤り、登場人物表と合わない人物を表示します。</p>
   </section>
   <section class="tab" id="tabFind" hidden>
     <div class="fbox">
@@ -416,7 +416,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
     </div>
     <div class="pgroup">
       <h3>校正</h3>
-      <label class="chk"><input type="checkbox" id="pLint" checked> 句読点・カギ括弧の重複と、カッコの閉じ忘れに色を付ける（画面のみ）</label>
+      <label class="chk"><input type="checkbox" id="pLint" checked> 「校正」タブで見つかった箇所に色を付ける（画面のみ）</label>
     </div>
     <div class="pgroup">
       <h3>配色</h3>
@@ -1159,6 +1159,47 @@ function findLints(){
       if(k<0){ out.push({a:i,b:i+1,k:'対応する開きのない閉じカッコ'}); continue; }
       for(const x of st.splice(k)) if(x.c!==o) out.push({a:x.i,b:x.i+1,k:'閉じていないカッコ'});
     }
+  }
+  /* 入力のミス：半角文字（半角の英数字・記号・カタカナ・空白）の混入 */
+  const HALF=c=>/[\x20-\x7E\uFF61-\uFF9F]/.test(c);
+  for(const x of P){
+    for(let i=x.start;i<x.end;){
+      if(HALF(doc[i])){ let j=i+1; while(j<x.end&&HALF(doc[j])) j++; out.push({a:i,b:j,k:'半角文字の混入'}); i=j; continue; }
+      i++;
+    }
+  }
+  /* 書式のミス */
+  const head=(x,n)=>doc.slice(x.start,Math.min(x.end,x.start+(n||24))).join('');
+  const SERIFU=/^[　 ]*([^「『　 ]{1,16})[「『]/;
+  let firstScene=true;
+  for(const x of P){
+    if(x.start===x.end) continue;
+    const h=head(x);
+    if(x.t==='hashira'){
+      const m=h.match(/^[　 ]*[○◯]/); if(m) out.push({a:x.start+m[0].length-1,b:x.start+m[0].length,k:'柱の「○」の重複（「○」は書式で付きます）'});
+      if(x.p>=L.frontEnd){
+        if(firstScene&&/^[　 ]*[○◯]?[　 ]*同[　 ]*[・･]/.test(h)) out.push({a:x.start,b:x.start+1,k:'最初の柱が「同・」で始まっている'});
+        firstScene=false;
+      }
+    }
+    else if(x.t==='serifu'&&!SERIFU.test(h)) out.push({a:x.start,b:x.start+1,k:'セリフの形（人物名「…」）になっていない'});
+    else if(x.t==='togaki'&&/^[　 ]*[^「『　 ]{1,10}[「『]/.test(h)&&!/^[　 ]*[「『]/.test(h)) out.push({a:x.start,b:x.start+1,k:'ト書きにセリフの形の段落がある'});
+  }
+  /* 登場人物表との照合（登場人物表のページがあるときだけ） */
+  const castP=P.filter(x=>x.t==='cast'&&x.start<x.end);
+  if(castP.length){
+    const cast=new Map();
+    for(const x of castP){ const m=head(x,30).match(/^[　 ]*([^（(　 ：:、，,・…―\-]{1,16})/); if(m) cast.set(m[1],{a:x.start+m[0].length-m[1].length,b:x.start+m[0].length}); }
+    const spoke=new Map();
+    for(const x of P){
+      if(x.t!=='serifu'||x.p<L.frontEnd) continue;
+      const m=head(x,20).match(SERIFU); if(!m) continue;
+      const name=m[1].replace(/[（(].*$/,'').trim(); if(!name) continue;
+      if(!spoke.has(name)){ const a=x.start+head(x,20).indexOf(name); spoke.set(name,{a,b:a+[...name].length}); }
+    }
+    const inCast=n=>cast.has(n)||(n.endsWith('の声')&&cast.has(n.slice(0,-2)));
+    for(const [n,r] of spoke) if(!inCast(n)) out.push({a:r.a,b:r.b,k:'登場人物表にない人物「'+n+'」'});
+    for(const [n,r] of cast) if(!spoke.has(n)&&!spoke.has(n+'の声')) out.push({a:r.a,b:r.b,k:'セリフのない人物「'+n+'」（登場人物表）'});
   }
   return out.sort((x,y)=>x.a-y.a||x.b-y.b);
 }
