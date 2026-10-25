@@ -312,7 +312,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
     <div class="tabhead"><span id="lCount"></span><span class="small">原稿の順</span></div>
     <ol id="lList"></ol>
     <p class="small" id="lEmpty" hidden>誤りは見つかりません。</p>
-    <p class="small">句読点やカギ括弧の重複、閉じていないカッコ、半角文字、柱・ト書き・セリフの書式の誤り、登場人物表にない人物を表示します。</p>
+    <p class="small">句読点やカギ括弧の重複、閉じていないカッコ、半角文字、柱・ト書き・セリフの書式の誤りを表示します。</p>
   </section>
   <section class="tab" id="tabFind" hidden>
     <div class="fbox">
@@ -1198,21 +1198,6 @@ function findLints(){
     }
     else if(x.t==='serifu'&&!SERIFU.test(h)) out.push({a:x.start,b:x.start+1,k:'セリフの形（人物名「…」）になっていない'});
     else if(x.t==='togaki'&&/^[　 ]*[^「『　 ]{1,10}「/.test(h)&&!/^[　 ]*[「『]/.test(h)) out.push({a:x.start,b:x.start+1,k:'ト書きにセリフの形の段落がある'});
-  }
-  /* 登場人物表との照合（登場人物表のページがあるときだけ） */
-  const castP=P.filter(x=>x.t==='cast'&&x.start<x.end);
-  if(castP.length){
-    const cast=new Map();
-    for(const x of castP){ const m=head(x,30).match(/^[　 ]*([^（(　 ：:、，,・…―\-]{1,16})/); if(m) cast.set(m[1],{a:x.start+m[0].length-m[1].length,b:x.start+m[0].length}); }
-    const spoke=new Map();
-    for(const x of P){
-      if(x.t!=='serifu'||x.p<L.frontEnd) continue;
-      const m=head(x,20).match(SERIFU); if(!m) continue;
-      const name=m[1].replace(/[（(].*$/,'').trim(); if(!name) continue;
-      if(!spoke.has(name)){ const a=x.start+head(x,20).indexOf(name); spoke.set(name,{a,b:a+[...name].length}); }
-    }
-    const inCast=n=>cast.has(n)||(n.endsWith('の声')&&cast.has(n.slice(0,-2)));
-    for(const [n,r] of spoke) if(!inCast(n)) out.push({a:r.a,b:r.b,k:'登場人物表にない人物「'+n+'」'});
   }
   return out.sort((x,y)=>x.a-y.a||x.b-y.b);
 }
