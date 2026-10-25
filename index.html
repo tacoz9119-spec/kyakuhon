@@ -99,7 +99,7 @@ main{flex:1 1 auto;min-width:0;padding-left:max(16px,env(safe-area-inset-left,0p
 @supports (height:100dvh){#outline{height:calc(100dvh - var(--barh,56px) - env(safe-area-inset-top,0px))}}
 #outline + main{padding-left:16px}
 #outline button{font:inherit;color:var(--ink);cursor:pointer;touch-action:manipulation}
-.tabs{flex:0 0 auto;display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--rule);border-radius:7px;overflow:hidden}
+.tabs{flex:0 0 auto;display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--rule);border-radius:7px;overflow:hidden}
 .tabs button{border:0;border-left:1px solid var(--rule);background:var(--paper);min-height:34px;font-size:13px!important;font-weight:600}
 .tabs button:first-child{border-left:0}
 .tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper)!important}
@@ -137,6 +137,18 @@ main{flex:1 1 auto;min-width:0;padding-left:max(16px,env(safe-area-inset-left,0p
 @media (max-width:719px){#outline{display:none}}
 #hits{position:absolute;inset:0;pointer-events:none;z-index:2}
 #hits div{position:absolute;background:var(--hit);border-radius:2px}
+/* 校正：句読点・カギ括弧の重複、カッコの閉じ忘れの箇所に色を付ける（画面だけ） */
+#lint{position:absolute;inset:0;pointer-events:none;z-index:2}
+#lint div{position:absolute;background:var(--lint);box-shadow:inset 0 0 0 1.5px var(--lint-edge);border-radius:3px}
+html.nolint #lint{display:none}
+:root{--lint:rgba(214,58,40,.16);--lint-edge:rgba(214,58,40,.75)}
+#lList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+#lList button{width:100%;display:flex;flex-direction:column;gap:1px;text-align:left;background:transparent;border:0;border-radius:6px;padding:5px 6px}
+#lList button:hover{background:var(--desk)}
+#lList .m{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+#lList .k{font-size:12px;font-weight:700;color:var(--accent)}
+#lList .s{font-family:var(--f-ui);font-size:12px;line-height:1.45;word-break:break-all}
+#lList mark{background:var(--lint);color:inherit;border-radius:2px;box-shadow:inset 0 0 0 1px var(--lint-edge)}
 .page.cover{display:flex;align-items:flex-start;justify-content:center;cursor:pointer;box-sizing:border-box;padding-top:calc(var(--pad) + var(--cell)*1.125*3)}
 .ctitle{writing-mode:vertical-rl;text-orientation:mixed;font-family:var(--f-ms);font-weight:var(--f-w);font-size:calc(var(--cell)*.78*1.125*var(--fs,1));
   letter-spacing:.22em;line-height:1.7;max-height:calc(var(--cell)*16.5);color:var(--ink)}
@@ -275,6 +287,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
     <button type="button" role="tab" data-tab="people" aria-selected="false">人物</button>
     <button type="button" role="tab" data-tab="notes" aria-selected="false">メモ</button>
     <button type="button" role="tab" data-tab="find" aria-selected="false">検索</button>
+    <button type="button" role="tab" data-tab="lint" aria-selected="false">校正</button>
   </div>
 
   <section class="tab" id="tabScenes">
@@ -294,6 +307,12 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
     <div class="nbox" id="plotBox"><textarea id="nt-plot" data-key="plot" aria-label="メモ"></textarea></div>
   </section>
 
+  <section class="tab" id="tabLint" hidden>
+    <div class="tabhead"><span id="lCount"></span><span class="small">原稿の順</span></div>
+    <ol id="lList"></ol>
+    <p class="small" id="lEmpty" hidden>句読点やカギ括弧の重複、カッコの閉じ忘れは見つかりません。</p>
+    <p class="small">句読点（。、）とカギ括弧（「」『』）が続けて打たれた箇所と、段落の中で閉じていないカッコ（「」『』（））を表示します。</p>
+  </section>
   <section class="tab" id="tabFind" hidden>
     <div class="fbox">
       <input id="fQ" type="text" placeholder="検索する語句" autocomplete="off" spellcheck="false" aria-label="検索する語句">
@@ -308,6 +327,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
 <main>
   <div id="sheets">
     <div id="hits"></div>
+    <div id="lint"></div>
     <div id="sel"></div>
     <div id="caret"></div>
     <div id="ime" hidden></div>
@@ -395,6 +415,10 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <label class="chk"><input type="checkbox" id="pGrid" checked> 原稿用紙のマス目を表示する（画面のみ。PDFには出力されません）</label>
     </div>
     <div class="pgroup">
+      <h3>校正</h3>
+      <label class="chk"><input type="checkbox" id="pLint" checked> 句読点・カギ括弧の重複と、カッコの閉じ忘れに色を付ける（画面のみ）</label>
+    </div>
+    <div class="pgroup">
       <h3>配色</h3>
       <div class="pbtns" id="themeSel" role="group" aria-label="配色">
         <button type="button" data-theme="auto" aria-pressed="false">端末の設定に合わせる</button>
@@ -474,7 +498,7 @@ const SAMPLE=[
 const SAMPLE_TITLE='灯台（仮）';
 
 const $=id=>document.getElementById(id);
-const sheets=$('sheets'), caretEl=$('caret'), ta=$('ta'), titleIn=$('title'), selLayer=$('sel'), hitsLayer=$('hits');
+const sheets=$('sheets'), caretEl=$('caret'), ta=$('ta'), titleIn=$('title'), selLayer=$('sel'), hitsLayer=$('hits'), lintLayer=$('lint');
 let doc=[], types=['hashira'], pids=[1], pidSeq=1, memos={}, cover=false, caret=0, title='', curId=null;
 let L=null, P=[], CELL=30, PADX=30, G=null;
 let undo=[], redo=[], lastKind='', lastT=0, composing=false, changed=false;
@@ -867,7 +891,7 @@ function resize(){
   root.style.setProperty('--cell',CELL+'px');
   root.classList.add('fit');
   G=geo();
-  placeCaret(); drawSel(); drawHits();
+  placeCaret(); drawSel(); drawHits(); drawLint();
 }
 function showCaretPage(){
   if(!L||!pages.length) return;
@@ -923,7 +947,7 @@ function render(){
   }
   if(changed){ changed=false; markDirty(); }
   if(tab==='find') computeHits();
-  updateStats(); placeCaret(); drawSel(); drawHits(); saveCache(); updateSave(); updatePanels();
+  updateStats(); placeCaret(); drawSel(); drawHits(); runLint(); saveCache(); updateSave(); updatePanels();
   $('bUndo').disabled=!undo.length; $('bRedo').disabled=!redo.length;
   const r=selRange();
   const cur=types[paraAt(r?r[0]:caret)];
@@ -1003,12 +1027,12 @@ function scrollToCaret(){
 
 /* ---------- サイドパネル：柱一覧・場面メモ・人物・検索 ---------- */
 let tab='scenes';
-try{ const t=localStorage.getItem('genko-tab'); if(t==='people'||t==='scenes'||t==='notes') tab=t; }catch(e){}
+try{ const t=localStorage.getItem('genko-tab'); if(t==='people'||t==='scenes'||t==='notes'||t==='lint') tab=t; }catch(e){}
 function setTab(t){
   tab=t;
   document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));
   $('tabScenes').hidden=t!=='scenes';
-  $('tabPeople').hidden=t!=='people'; $('tabNotes').hidden=t!=='notes'; $('tabFind').hidden=t!=='find';
+  $('tabPeople').hidden=t!=='people'; $('tabNotes').hidden=t!=='notes'; $('tabFind').hidden=t!=='find'; $('tabLint').hidden=t!=='lint';
   if(t!=='find'){ try{ localStorage.setItem('genko-tab',t); }catch(e){} }
   if(L) render();
 }
@@ -1045,6 +1069,7 @@ function updatePanels(){
   if(tab==='people') updatePeople(items);
   if(notesFor!==curId){ notesFor=curId; document.querySelectorAll('.nbox textarea').forEach(el=>{ el.value=notes[el.dataset.key]||''; }); }
   if(tab==='find') renderFindList();
+  if(tab==='lint') renderLintList();
 }
 $('olList').addEventListener('click',e=>{
   const b=e.target.closest('button[data-i]'); if(!b) return;
@@ -1088,6 +1113,7 @@ document.querySelectorAll('.nbox textarea').forEach(el=>el.addEventListener('inp
   const k=el.dataset.key; if(el.value) notes[k]=el.value; else delete notes[k];
   markDirty(); saveCache();
 }));
+$('lList').addEventListener('click',e=>{ const b=e.target.closest('button[data-i]'); if(b) jumpTo(+b.dataset.i); });
 $('pplList').addEventListener('click',e=>{ const b=e.target.closest('button[data-i]'); if(b) jumpTo(+b.dataset.i); });
 
 /* 検索・置換 */
@@ -1109,6 +1135,55 @@ function drawHits(){
   hitsLayer.innerHTML=spanBoxes(hits.slice(0,2000).map(h=>[h,h+fqLen]));
 }
 let fSig='';
+/* ---------- 校正：句読点・カギ括弧の重複、カッコの閉じ忘れ ---------- */
+let lints=[], lintSig='', lintListSig='';
+const OPEN={'「':'」','『':'』','（':'）'}, CLOSE={'」':'「','』':'『','）':'（'};
+function findLints(){
+  const out=[], n=doc.length;
+  /* 重複：句読点が続く／同じカギ括弧が続く */
+  for(let i=0;i<n;){
+    const c=doc[i];
+    if(c==='。'||c==='、'){ let j=i+1; while(j<n&&(doc[j]==='。'||doc[j]==='、')) j++; if(j-i>1) out.push({a:i,b:j,k:'句読点の重複'}); i=j; continue; }
+    if(c==='「'||c==='」'||c==='『'||c==='』'){ let j=i+1; while(j<n&&doc[j]===c) j++; if(j-i>1) out.push({a:i,b:j,k:'カギ括弧の重複'}); i=j; continue; }
+    i++;
+  }
+  /* 閉じ忘れ：段落ごとに、開きと閉じの対応を調べる */
+  let st=[];
+  const flush=()=>{ for(const x of st) out.push({a:x.i,b:x.i+1,k:'閉じていないカッコ'}); st=[]; };
+  for(let i=0;i<=n;i++){
+    const c=i<n?doc[i]:'\n';
+    if(c==='\n'){ flush(); continue; }
+    if(OPEN[c]){ st.push({c,i}); continue; }
+    if(CLOSE[c]){
+      const o=CLOSE[c]; let k=st.length-1; while(k>=0&&st[k].c!==o) k--;
+      if(k<0){ out.push({a:i,b:i+1,k:'対応する開きのない閉じカッコ'}); continue; }
+      for(const x of st.splice(k)) if(x.c!==o) out.push({a:x.i,b:x.i+1,k:'閉じていないカッコ'});
+    }
+  }
+  return out.sort((x,y)=>x.a-y.a||x.b-y.b);
+}
+let lintT=0;
+function runLint(){
+  clearTimeout(lintT);
+  lintT=setTimeout(()=>{
+    lints=findLints();
+    const sig=lints.map(x=>x.a+'-'+x.b+x.k).join(',')+'|'+L.mainCol+'|'+doc.length;
+    if(sig!==lintSig){ lintSig=sig; drawLint(); if(tab==='lint') renderLintList(); }
+    $('lintBadge')&&($('lintBadge').textContent=lints.length?String(lints.length):'');
+  },250);
+}
+function drawLint(){
+  if(!showLint||!lints.length||!L||!G){ lintLayer.innerHTML=''; return; }
+  lintLayer.innerHTML=spanBoxes(lints.slice(0,2000).map(x=>[x.a,x.b]));
+}
+function renderLintList(){
+  $('lCount').textContent=lints.length?lints.length+'件':'';
+  $('lEmpty').hidden=lints.length>0;
+  const sig=lintSig; if(sig===lintListSig) return; lintListSig=sig;
+  const snip=(a,b)=>esc(doc.slice(a,b).join('').replace(/\n/g,'／'));
+  $('lList').innerHTML=lints.slice(0,300).map((x,k)=>`<li><button type="button" data-i="${x.a}"><span class="m">${posLabel(colOf(x.a))}</span><span class="k">${esc(x.k)}</span><span class="s">${snip(Math.max(0,x.a-8),x.a)}<mark>${snip(x.a,x.b)}</mark>${snip(x.b,Math.min(doc.length,x.b+8))}</span></button></li>`).join('')
+    +(lints.length>300?`<li class="small">ほか${lints.length-300}件</li>`:'');
+}
 function renderFindList(){
   const ch=curHit();
   $('fCount').textContent=fqLen?(hits.length?`${ch>=0?ch+1:'-'} / ${hits.length}件`:'0件'):'';
@@ -1770,6 +1845,12 @@ $('sizeSel').addEventListener('click',e=>{
 });
 applySizeUI();
 /* 原稿用紙のマス目の表示・非表示（この端末に記憶）。文字の位置は変わらない */
+/* 校正の色付けの表示・非表示（この端末に記憶） */
+let showLint=true;
+try{ showLint=localStorage.getItem('genko-lint')!=='0'; }catch(e){}
+function applyLint(){ document.documentElement.classList.toggle('nolint',!showLint); $('pLint').checked=showLint; drawLint(); }
+$('pLint').addEventListener('change',()=>{ showLint=$('pLint').checked; try{ localStorage.setItem('genko-lint',showLint?'1':'0'); }catch(e){} applyLint(); });
+applyLint();
 let showGrid=true;
 try{ showGrid=localStorage.getItem('genko-grid')!=='0'; }catch(e){}
 function applyGrid(){ document.documentElement.classList.toggle('nogrid',!showGrid); $('pGrid').checked=showGrid; }
