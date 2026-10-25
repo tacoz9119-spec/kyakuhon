@@ -175,6 +175,7 @@ html.nolint #lint{display:none}
   font-family:var(--f-ms);font-weight:var(--f-w);font-size:calc(var(--cell)*.78*var(--fs,1));line-height:1;color:var(--ink);pointer-events:none}
 .ch.up{text-orientation:upright}
 .ch.two{font-size:calc(var(--cell)*.5*var(--fs,1))}
+.ch.tcy span{writing-mode:horizontal-tb;display:inline-block;white-space:nowrap;line-height:1;letter-spacing:0;transform:scaleX(var(--sx,1))}
 
 #sel{position:absolute;inset:0;pointer-events:none;z-index:3}
 #sel div{position:absolute;background:var(--sel);border-radius:2px}
@@ -811,8 +812,18 @@ function updateSave(){
 
 /* ---------- layout ---------- */
 /* 登場人物表・あらすじのページがあるときは、それぞれの後ろを空の行で埋めて、次の部分を新しいページから始める */
+/* 縦中横：半角の数字・記号が2〜4字続くときは、まとめて1マスに横並びで入れる（英字は対象外） */
+const TCY=/[\x21-\x40\x5B-\x60\x7B-\x7E]/;
+function tcyRuns(d){
+  const t=new Array(d.length);
+  for(let k=0;k<d.length;){
+    if(TCY.test(d[k])){ let j=k+1; while(j<d.length&&TCY.test(d[j])) j++; if(j-k>=2&&j-k<=4) t[k]=j-k; k=j; }
+    else k++;
+  }
+  return t;
+}
 function layout(d){
-  const cols=[], slot=new Array(d.length), endMap={};
+  const cols=[], slot=new Array(d.length), endMap={}, tcy=tcyRuns(d);
   const F=fronts(), ce=F.end;
   let i=0, p=0, col, mainCol=ce?-1:0;
   const pad=()=>{ while(cols.length%PER) cols.push({start:i,end:i,p,t:'fill',cells:[],hang:[],row:0,mark:false,filler:true}); };
@@ -830,7 +841,8 @@ function layout(d){
     const ch=d[i];
     if(ch==='\n'){ col.end=i; endMap[i]=cols.length-1; i++; p++; open(true); continue; }
     if(col.row<ROWS && !col.hang.length){
-      col.cells.push({i,ch,r:col.row}); slot[i]={c:cols.length-1,r:col.row}; col.row++; i++; continue;
+      const n=tcy[i]||1;
+      col.cells.push({i,ch:n>1?d.slice(i,i+n).join(''):ch,r:col.row,n}); for(let k=0;k<n;k++) slot[i+k]={c:cols.length-1,r:col.row}; col.row++; i+=n; continue;
     }
     if(col.row===ROWS && HANG.has(ch) && col.hang.length<2){
       col.hang.push({i,ch}); slot[i]={c:cols.length-1,r:ROWS}; i++; continue;
@@ -838,7 +850,7 @@ function layout(d){
     col.end=i; open(false);
   }
   if(mainCol<0) mainCol=Math.ceil(cols.length/PER)*PER;
-  return {cols,slot,endMap,mainCol,frontEnd:ce};
+  return {cols,slot,endMap,mainCol,frontEnd:ce,tcy};
 }
 function idxAt(col,r){
   for(const x of col.cells) if(x.r>=r) return x.i;
@@ -931,7 +943,8 @@ function render(){
       const col=L.cols[p*PER+lc]; if(!col) break;
       if(col.mark){ html+=`<span class="ch" style="--c:${lc};--r:0">○</span>`; sig+='\u0002'; }
       for(const x of col.cells){
-        html+=`<span class="ch${ASC.test(x.ch)?' up':''}" style="--c:${lc};--r:${x.r}">${esc(x.ch)}</span>`;
+        if(x.n>1) html+=`<span class="ch tcy" style="--c:${lc};--r:${x.r};--sx:${x.n===2?1:x.n===3?.72:.56}"><span>${esc(x.ch)}</span></span>`;
+        else html+=`<span class="ch${ASC.test(x.ch)?' up':''}" style="--c:${lc};--r:${x.r}">${esc(x.ch)}</span>`;
         sig+=x.r+x.ch;
       }
       if(col.hang.length){
@@ -1164,7 +1177,8 @@ function findLints(){
   const HALF=c=>/[\x20-\x7E\uFF61-\uFF9F]/.test(c);
   for(const x of P){
     for(let i=x.start;i<x.end;){
-      if(HALF(doc[i])){ let j=i+1; while(j<x.end&&HALF(doc[j])) j++; out.push({a:i,b:j,k:'半角文字の混入'}); i=j; continue; }
+      if(L.tcy[i]){ i+=L.tcy[i]; continue; }   /* 縦中横にした文字は対象外 */
+      if(HALF(doc[i])){ let j=i+1; while(j<x.end&&HALF(doc[j])&&!L.tcy[j]) j++; out.push({a:i,b:j,k:'半角文字の混入'}); i=j; continue; }
       i++;
     }
   }
@@ -1777,6 +1791,14 @@ function buildPdf(){
   /* 文字は約16pt（マス6.88mm）。20字分の高さを上下中央に置き、左右は行間で全体の横幅（198.3mm）を保つ */
   const PW=297, PH=210, cs=6.88, gridW=198.3, step=(gridW-cs)/(PER-1), top=(PH-ROWS*cs)/2, right=(PW+gridW)/2;
   const pnoY=(top+ROWS*cs+PH)/2+1.2;  /* ページ番号：下余白の中央 */
+  /* 縦中横：マスの幅に収まる大きさで、横書きのまま中央に置く */
+  function drawTcy(str,x0,y0,size){
+    let fs=size*0.82; pdf.setFontSize(fs*72/25.4);
+    const w=pdf.getTextWidth(str), lim=size*0.92;
+    if(w>lim){ fs*=lim/w; pdf.setFontSize(fs*72/25.4); }
+    const w2=pdf.getTextWidth(str);
+    pdf.text(str,x0+(size-w2)/2,y0+size/2+fs*0.36);
+  }
   function drawCh(ch,x0,y0,size){
     const fs=size*0.82, s=fs/1000;
     pdf.setFontSize(fs*72/25.4);
@@ -1808,7 +1830,7 @@ function buildPdf(){
       const col=cols[p*PER+lc]; if(!col) break;
       const x=right-lc*step-cs;
       if(col.mark) drawCh('○',x,top,cs);
-      for(const c of col.cells) if(c.ch!==' '&&c.ch!=='　') drawCh(c.ch,x,top+c.r*cs,cs);
+      for(const c of col.cells){ if(c.n>1) drawTcy(c.ch,x,top+c.r*cs,cs); else if(c.ch!==' '&&c.ch!=='　') drawCh(c.ch,x,top+c.r*cs,cs); }
       if(col.hang.length===1) drawCh(col.hang[0].ch,x,top+ROWS*cs,cs);
       else if(col.hang.length>1) col.hang.forEach((h,k)=>drawCh(h.ch,x+cs/4,top+ROWS*cs+k*cs/2,cs/2));
     }
