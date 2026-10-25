@@ -312,7 +312,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
     <div class="tabhead"><span id="lCount"></span><span class="small">原稿の順</span></div>
     <ol id="lList"></ol>
     <p class="small" id="lEmpty" hidden>誤りは見つかりません。</p>
-    <p class="small">句読点やカギ括弧の重複、閉じていないカッコ、半角文字、柱・ト書き・セリフの書式の誤り、登場人物表と合わない人物を表示します。</p>
+    <p class="small">句読点やカギ括弧の重複、閉じていないカッコ、半角文字、柱・ト書き・セリフの書式の誤り、登場人物表にない人物を表示します。</p>
   </section>
   <section class="tab" id="tabFind" hidden>
     <div class="fbox">
@@ -1197,7 +1197,7 @@ function findLints(){
       }
     }
     else if(x.t==='serifu'&&!SERIFU.test(h)) out.push({a:x.start,b:x.start+1,k:'セリフの形（人物名「…」）になっていない'});
-    else if(x.t==='togaki'&&/^[　 ]*[^「『　 ]{1,10}[「『]/.test(h)&&!/^[　 ]*[「『]/.test(h)) out.push({a:x.start,b:x.start+1,k:'ト書きにセリフの形の段落がある'});
+    else if(x.t==='togaki'&&/^[　 ]*[^「『　 ]{1,10}「/.test(h)&&!/^[　 ]*[「『]/.test(h)) out.push({a:x.start,b:x.start+1,k:'ト書きにセリフの形の段落がある'});
   }
   /* 登場人物表との照合（登場人物表のページがあるときだけ） */
   const castP=P.filter(x=>x.t==='cast'&&x.start<x.end);
@@ -1213,7 +1213,6 @@ function findLints(){
     }
     const inCast=n=>cast.has(n)||(n.endsWith('の声')&&cast.has(n.slice(0,-2)));
     for(const [n,r] of spoke) if(!inCast(n)) out.push({a:r.a,b:r.b,k:'登場人物表にない人物「'+n+'」'});
-    for(const [n,r] of cast) if(!spoke.has(n)&&!spoke.has(n+'の声')) out.push({a:r.a,b:r.b,k:'セリフのない人物「'+n+'」（登場人物表）'});
   }
   return out.sort((x,y)=>x.a-y.a||x.b-y.b);
 }
