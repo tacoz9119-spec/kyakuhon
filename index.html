@@ -276,6 +276,8 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
 #plotBox{flex:1 1 auto;min-height:0}
 #nt-plot{flex:1 1 auto;min-height:12em;resize:none}
 #castBox{margin-bottom:18px}
+#pplHelp{margin:0 0 4px}
+#rHelp{margin:0}
 .tabhead.ttl{padding:0 2px}
 .tabhead .lbl{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.06em}
 #nt-cast{min-height:10.3em}   /* 人物一覧だけ、ほかの欄より約2.5行分高く */
@@ -356,7 +358,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
           <button type="button" data-rm="base" aria-pressed="false">親文字ごと</button>
         </span>
       </div>
-      <p class="small">ルビを付けた箇所を一覧にします。「親文字ごと」では同じ親文字のルビをまとめ、読みが違うものを知らせます。</p>
+      <p class="small" id="rHelp">ルビを付けた箇所を一覧にします。「親文字ごと」では同じ親文字のルビをまとめ、読みが違うものを知らせます。</p>
     </div>
     <ol id="fList"></ol>
     <div id="rBox" hidden>
