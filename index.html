@@ -175,11 +175,12 @@ html.nolint #lint{display:none}
   font-family:var(--f-ms);font-weight:var(--f-w);font-size:calc(var(--cell)*.78*var(--fs,1));line-height:1;color:var(--ink);pointer-events:none}
 .ch.up{text-orientation:upright}
 .ch.two{font-size:calc(var(--cell)*.5*var(--fs,1))}
-.ruby{position:absolute;pointer-events:none;right:calc(var(--padx,var(--pad)) + var(--c)*var(--step) - var(--cell)*.21);
+.ruby{position:absolute;pointer-events:auto;cursor:pointer;z-index:4;right:calc(var(--padx,var(--pad)) + var(--c)*var(--step) - var(--cell)*.21);
   top:calc(var(--pad) + var(--r)*var(--cell));width:calc(var(--cell)*.36);height:calc(var(--n)*var(--cell));
   display:flex;flex-direction:column;align-items:center;justify-content:space-around;
   font-family:var(--f-ms);font-weight:var(--f-w);font-size:calc(var(--cell)*.3);line-height:1.08;color:var(--ink)}
 .ruby.dense{justify-content:center}
+.ruby::before{content:"";position:absolute;inset:0 calc(var(--cell)*-.08)}
 .ruby span{display:block;writing-mode:vertical-rl;text-orientation:mixed}
 .ch.tcy span{writing-mode:horizontal-tb;display:inline-block;white-space:nowrap;line-height:1;letter-spacing:0;transform:scaleX(var(--sx,1))}
 
@@ -280,7 +281,6 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
     <button id="bUndo" class="ico" type="button" disabled aria-label="元に戻す" title="元に戻す"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
     <button id="bRedo" class="ico" type="button" disabled aria-label="やり直す" title="やり直す"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
     <span class="sep"></span>
-    <button id="bFont" type="button">フォント</button>
     <button id="bLook" type="button">外見</button>
     <button id="bDocs" type="button">その他</button>
   </div>
@@ -354,10 +354,9 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="pbtns">
         <button id="pTxt" type="button">テキストで書き出す</button>
         <button id="pPdf" type="button">PDFで書き出す</button>
-        <button id="pDocx" type="button">Wordで書き出す</button>
         <button id="pCopy" type="button">本文をコピー</button>
       </div>
-      <div class="small">PDFはA4横・1ページ400字で、柱・ト書き・セリフの字下げを保ち、罫線なしで出力します。Wordのファイルも、縦書き・A4横で、ルビと縦中横を付けて出力します。テキストでは、ルビを「親文字（よみ）」の形にします。iPadでは共有メニューが開くので、「“ファイル”に保存」などを選んでください。</div>
+      <div class="small">PDFはA4横・1ページ400字で、柱・ト書き・セリフの字下げを保ち、罫線なしで出力します。テキストでは、ルビを「親文字（よみ）」の形にします。iPadでは共有メニューが開くので、「“ファイル”に保存」などを選んでください。</div>
     </div>
     <div class="pgroup">
       <h3>表紙・登場人物表・あらすじ（この原稿）</h3>
@@ -418,6 +417,27 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
   <div class="panel" role="dialog" aria-labelledby="lookTitle">
     <div class="phead"><h2 id="lookTitle">外見</h2><button id="lpClose" type="button">閉じる</button></div>
     <div class="pgroup">
+      <h3>文字の大きさ</h3>
+      <div class="pbtns" id="sizeSel" role="group" aria-label="文字の大きさ">
+        <button type="button" data-size="l" aria-pressed="false">大</button>
+        <button type="button" data-size="m" aria-pressed="false">中</button>
+        <button type="button" data-size="s" aria-pressed="false">小</button>
+      </div>
+      <div class="small">原稿用紙のマス目の大きさはそのままで、マスの中の文字の大きさだけを変えます。PDFの文字の大きさは変わりません。</div>
+    </div>
+    <div class="pgroup">
+      <h3>書体と太さ</h3>
+      <div class="pbtns" id="fontSel" role="group" aria-label="書体">
+        <button type="button" data-font="mincho" aria-pressed="false">明朝体</button>
+        <button type="button" data-font="gothic" aria-pressed="false">ゴシック体</button>
+      </div>
+      <div class="pbtns" id="weightSel" role="group" aria-label="文字の太さ">
+        <button type="button" data-weight="light" aria-pressed="false">細め</button>
+        <button type="button" data-weight="regular" aria-pressed="false">標準</button>
+      </div>
+      <div class="small">原稿用紙の文字の書体と太さを切り替えます。PDFも、ここで選んだ書体と太さで出力します。</div>
+    </div>
+    <div class="pgroup">
       <h3>ページ番号</h3>
       <label class="chk"><input type="checkbox" id="pPno" checked> ページ番号を表示する（画面とPDFの両方）</label>
     </div>
@@ -453,35 +473,8 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
         <button id="rbOk" type="button" class="solid">ルビを付ける</button>
         <button id="rbDel" type="button" hidden>ルビを外す</button>
       </div>
-      <div class="small">原稿には「｜親文字《よみ》」の形で入ります。この形を直接入力しても、ルビになります。</div>
+      <div class="small">原稿には「｜親文字《よみ》」の形で入ります。この形を直接入力しても、ルビになります。付けたルビは、原稿用紙の読みの部分を押すと、ここで直したり外したりできます。</div>
     </div>
-  </div>
-</div>
-<div class="scrim" id="fontPanel" hidden>
-  <div class="panel" role="dialog" aria-labelledby="fontTitle">
-    <div class="phead"><h2 id="fontTitle">フォント</h2><button id="fpClose" type="button">閉じる</button></div>
-    <div class="pgroup">
-      <h3>文字の大きさ</h3>
-      <div class="pbtns" id="sizeSel" role="group" aria-label="文字の大きさ">
-        <button type="button" data-size="l" aria-pressed="false">大</button>
-        <button type="button" data-size="m" aria-pressed="false">中</button>
-        <button type="button" data-size="s" aria-pressed="false">小</button>
-      </div>
-      <div class="small">原稿用紙のマス目の大きさはそのままで、マスの中の文字の大きさだけを変えます。PDFの文字の大きさは変わりません。</div>
-    </div>
-    <div class="pgroup">
-      <h3>書体と太さ</h3>
-      <div class="pbtns" id="fontSel" role="group" aria-label="書体">
-        <button type="button" data-font="mincho" aria-pressed="false">明朝体</button>
-        <button type="button" data-font="gothic" aria-pressed="false">ゴシック体</button>
-      </div>
-      <div class="pbtns" id="weightSel" role="group" aria-label="文字の太さ">
-        <button type="button" data-weight="light" aria-pressed="false">細め</button>
-        <button type="button" data-weight="regular" aria-pressed="false">標準</button>
-      </div>
-      <div class="small">原稿用紙の文字の書体と太さを切り替えます。PDFも、ここで選んだ書体と太さで出力します。</div>
-    </div>
-    <div class="small">フォントの設定は、この端末に記憶されます。</div>
   </div>
 </div>
 <input type="file" id="fileIn" accept=".txt,text/plain" hidden>
@@ -911,7 +904,7 @@ function layout(d,opt){
     for(let k=g.bs;k<g.be;k++){ const sl=slot[k]; if(!sl||sl.r>=ROWS) continue; const last=segs[segs.length-1];
       if(last&&last.c===sl.c){ last.r1=Math.max(last.r1,sl.r); last.n++; } else segs.push({c:sl.c,r0:sl.r,r1:sl.r,n:1}); }
     const rd=d.slice(g.rs,g.re), tot=segs.reduce((a,x)=>a+x.n,0); let used=0, acc=0;
-    segs.forEach((x,k)=>{ acc+=x.n; const upto=k===segs.length-1?rd.length:Math.round(rd.length*acc/tot); if(upto>used) ruby.push({c:x.c,r0:x.r0,r1:x.r1,text:rd.slice(used,upto).join('')}); used=Math.max(used,upto); });
+    segs.forEach((x,k)=>{ acc+=x.n; const upto=k===segs.length-1?rd.length:Math.round(rd.length*acc/tot); if(upto>used) ruby.push({c:x.c,r0:x.r0,r1:x.r1,text:rd.slice(used,upto).join(''),s:g.s}); used=Math.max(used,upto); });
   }
   return {cols,slot,endMap,mainCol,frontEnd:ce,tcy,ruby,markup};
 }
@@ -1012,7 +1005,7 @@ function render(){
       }
       for(const rb of L.ruby) if(rb.c===p*PER+lc){
         const m=[...rb.text].length, h=rb.r1-rb.r0+1;
-        html+=`<span class="ruby${m*0.34>h?' dense':''}" style="--c:${lc};--r:${rb.r0};--n:${h}">${[...rb.text].map(c=>`<span>${esc(c)}</span>`).join('')}</span>`;
+        html+=`<span class="ruby${m*0.34>h?' dense':''}" data-s="${rb.s}" title="読みを直す・ルビを外す" style="--c:${lc};--r:${rb.r0};--n:${h}">${[...rb.text].map(c=>`<span>${esc(c)}</span>`).join('')}</span>`;
         sig+='\u0003'+rb.r0+rb.text;
       }
       if(col.hang.length){
@@ -1702,80 +1695,6 @@ $('bDocs').addEventListener('click',async()=>{
   $('docsPanel').hidden=false; renderList();
 });
 $('pClose').addEventListener('click',()=>$('docsPanel').hidden=true);
-/* ---------- Wordで書き出す（.docx）：縦書き・A4横、ルビと縦中横はWordの機能で入れる ---------- */
-const CRC_T=(()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[n]=c>>>0; } return t; })();
-function crc32(u){ let c=0xFFFFFFFF; for(let i=0;i<u.length;i++) c=CRC_T[(c^u[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
-function zipStore(files){   /* 圧縮しないZIP（Wordのファイルの入れ物） */
-  const enc=new TextEncoder(), parts=[], cen=[]; let off=0;
-  const u16=v=>[v&255,(v>>>8)&255], u32=v=>[v&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255];
-  for(const [name,text] of files){
-    const nb=enc.encode(name), db=enc.encode(text), crc=crc32(db);
-    const head=[...u32(0x04034b50),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(crc),...u32(db.length),...u32(db.length),...u16(nb.length),...u16(0)];
-    parts.push(new Uint8Array(head),nb,db);
-    cen.push([...u32(0x02014b50),...u16(20),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(crc),...u32(db.length),...u32(db.length),...u16(nb.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(off)],nb);
-    off+=head.length+nb.length+db.length;
-  }
-  let csize=0; const cparts=[]; for(let k=0;k<cen.length;k+=2){ const h=new Uint8Array(cen[k]); cparts.push(h,cen[k+1]); csize+=h.length+cen[k+1].length; }
-  const end=new Uint8Array([...u32(0x06054b50),...u16(0),...u16(0),...u16(files.length),...u16(files.length),...u32(csize),...u32(off),...u16(0)]);
-  return new Blob([...parts,...cparts,end],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
-}
-function buildDocx(){
-  const X=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  const FONT=fontKey==='gothic'?'游ゴシック':'游明朝';
-  const CH=390, LINE=571;   /* 1字＝390（約6.88mm）、行の間隔＝571（約10.07mm）。単位は1/20ポイント */
-  const IND={hashira:[100,100],togaki:[300,0],serifu:[100,100],casthead:[300,0],synhead:[300,0]};
-  const rubies=rubyRuns(doc), rAt=new Map(rubies.map(g=>[g.s,g])), tcy=tcyRuns(doc);
-  let tid=0;
-  const run=t=>t?`<w:r><w:t xml:space="preserve">${X(t)}</w:t></w:r>`:'';
-  const para=(inner,t,extra)=>{
-    const ind=IND[t]; let pPr=extra||'';
-    if(ind) pPr+=`<w:ind w:leftChars="${ind[0]}" w:left="${ind[0]*CH/100}"${ind[1]?` w:hangingChars="${ind[1]}" w:hanging="${ind[1]*CH/100}"`:''}/>`;
-    return `<w:p>${pPr?`<w:pPr>${pPr}</w:pPr>`:''}${inner}</w:p>`;
-  };
-  const brk='<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
-  const body=[];
-  if(cover){ body.push(para(`<w:r><w:rPr><w:sz w:val="36"/></w:rPr><w:t xml:space="preserve">${X(title||'無題')}</w:t></w:r>`,'cover','<w:jc w:val="center"/>')); body.push(brk); }
-  const grp=t=>t==='casthead'||t==='cast'?'cast':t==='synhead'||t==='syn'?'syn':'main';
-  let prev=null;
-  for(const x of buildParas()){
-    const g=grp(x.t); if(prev&&g!==prev) body.push(brk); prev=g;
-    let inner='', buf='';
-    if(x.t==='hashira') buf='○';
-    for(let i=x.start;i<x.end;){
-      const rb=rAt.get(i);
-      if(rb&&rb.e<=x.end){
-        inner+=run(buf); buf='';
-        inner+=`<w:r><w:ruby><w:rubyPr><w:rubyAlign w:val="distributeSpace"/><w:hps w:val="14"/><w:hpsRaise w:val="30"/><w:hpsBaseText w:val="32"/><w:lid w:val="ja-JP"/></w:rubyPr>`
-          +`<w:rt><w:r><w:rPr><w:sz w:val="14"/></w:rPr><w:t>${X(doc.slice(rb.rs,rb.re).join(''))}</w:t></w:r></w:rt>`
-          +`<w:rubyBase><w:r><w:rPr><w:sz w:val="32"/></w:rPr><w:t>${X(doc.slice(rb.bs,rb.be).join(''))}</w:t></w:r></w:rubyBase></w:ruby></w:r>`;
-        i=rb.e; continue;
-      }
-      if(tcy[i]&&i+tcy[i]<=x.end){
-        inner+=run(buf); buf='';
-        inner+=`<w:r><w:rPr><w:eastAsianLayout w:id="${++tid}" w:vert="1" w:vertCompress="1"/></w:rPr><w:t>${X(doc.slice(i,i+tcy[i]).join(''))}</w:t></w:r>`;
-        i+=tcy[i]; continue;
-      }
-      buf+=doc[i]; i++;
-    }
-    inner+=run(buf);
-    body.push(para(inner,x.t));
-  }
-  const W='xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
-  const documentXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W}><w:body>${body.join('')}`
-    +`<w:sectPr><w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/><w:pgMar w:top="2052" w:right="2798" w:bottom="2052" w:left="2798" w:header="851" w:footer="992" w:gutter="0"/>`
-    +`<w:textDirection w:val="tbRl"/><w:docGrid w:type="lines" w:linePitch="${LINE}"/></w:sectPr></w:body></w:document>`;
-  const stylesXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles ${W}><w:docDefaults>`
-    +`<w:rPrDefault><w:rPr><w:rFonts w:ascii="${FONT}" w:eastAsia="${FONT}" w:hAnsi="${FONT}" w:cs="${FONT}"/><w:spacing w:val="${CH-320}"/><w:sz w:val="32"/><w:szCs w:val="32"/><w:lang w:val="ja-JP" w:eastAsia="ja-JP"/></w:rPr></w:rPrDefault>`
-    +`<w:pPrDefault><w:pPr><w:spacing w:before="0" w:after="0" w:line="${LINE}" w:lineRule="exact"/></w:pPr></w:pPrDefault></w:docDefaults>`
-    +`<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style></w:styles>`;
-  const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">`
-    +`<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>`
-    +`<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>`
-    +`<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>`;
-  const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
-  const drels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
-  return zipStore([['[Content_Types].xml',ct],['_rels/.rels',rels],['word/document.xml',documentXml],['word/_rels/document.xml.rels',drels],['word/styles.xml',stylesXml]]);
-}
 /* ルビのメニュー：選んだ文字に付ける／カーソルのあるルビを直す・外す */
 function rubyTarget(){
   const r=selRange();
@@ -1788,12 +1707,21 @@ function rubyTarget(){
   return null;
 }
 let rubyT=null;
-$('bRuby').addEventListener('click',()=>{
-  rubyT=rubyTarget(); if(!rubyT) return;
+function openRuby(t){
+  rubyT=t; if(!rubyT) return;
   ta.blur(); $('rbBase').textContent=rubyT.base; $('rbRead').value=rubyT.read; $('rbDel').hidden=!rubyT.g;
   $('rbOk').textContent=rubyT.g?'読みを直す':'ルビを付ける';
-  $('rubyPanel').hidden=false; setTimeout(()=>$('rbRead').focus(),50);
-});
+  $('rubyPanel').hidden=false; setTimeout(()=>{ $('rbRead').focus(); $('rbRead').select(); },50);
+}
+$('bRuby').addEventListener('click',()=>openRuby(rubyTarget()));
+/* 原稿用紙のルビ（読み）を押すと、そのルビを直す・外す画面を開く */
+sheets.addEventListener('pointerdown',e=>{
+  const el=e.target.closest&&e.target.closest('.ruby[data-s]'); if(!el) return;
+  e.preventDefault(); e.stopPropagation();
+  const s0=+el.dataset.s, g=rubyRuns(doc).find(x=>x.s===s0); if(!g) return;
+  openRuby({a:g.s,b:g.e,base:doc.slice(g.bs,g.be).join(''),read:doc.slice(g.rs,g.re).join(''),g});
+},true);
+sheets.addEventListener('click',e=>{ if(e.target.closest&&e.target.closest('.ruby[data-s]')){ e.preventDefault(); e.stopPropagation(); } },true);
 function closeRuby(){ $('rubyPanel').hidden=true; rubyT=null; ta.focus({preventScroll:true}); }
 function putRuby(chars,caretAt){
   const t=rubyT; if(!t) return;
@@ -1811,12 +1739,10 @@ $('rbDel').addEventListener('click',()=>{ if(rubyT&&rubyT.g) putRuby([...rubyT.b
 $('rbRead').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229){ e.preventDefault(); $('rbOk').click(); } if(e.key==='Escape') closeRuby(); });
 $('rbClose').addEventListener('click',closeRuby);
 $('rubyPanel').addEventListener('click',e=>{ if(e.target===$('rubyPanel')) closeRuby(); });
-$('bFont').addEventListener('click',()=>{ ta.blur(); $('fontPanel').hidden=false; });
 $('bLook').addEventListener('click',()=>{ ta.blur(); $('lookPanel').hidden=false; });
 $('lpClose').addEventListener('click',()=>$('lookPanel').hidden=true);
 $('lookPanel').addEventListener('click',e=>{ if(e.target===$('lookPanel')) $('lookPanel').hidden=true; });
-$('fpClose').addEventListener('click',()=>$('fontPanel').hidden=true);
-$('fontPanel').addEventListener('click',e=>{ if(e.target===$('fontPanel')) $('fontPanel').hidden=true; });
+
 /* ログインの入力欄は、「その他」を開いてログイン画面を表示している間だけ置く。
    ページにパスワード欄があると、iPadのSafariが本文の入力中にもパスワードの候補を出すため */
 const SY_FIELDS='<input id="syMail" type="email" placeholder="メールアドレス" autocomplete="username" aria-label="メールアドレス">'+
@@ -1858,7 +1784,6 @@ async function saveFile(name,data,type){
   setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
 $('pTxt').addEventListener('click',()=>saveFile(fileName('.txt'),rubyParen(getPlain(0,doc.length)),'text/plain;charset=utf-8'));
-$('pDocx').addEventListener('click',async()=>{ await saveLocalNow(); saveFile(fileName('.docx'),buildDocx(),'application/vnd.openxmlformats-officedocument.wordprocessingml.document'); });
 
 /* テキストの読み込み */
 $('pImport').addEventListener('click',()=>$('fileIn').click());
