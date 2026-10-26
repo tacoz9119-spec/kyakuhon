@@ -987,7 +987,27 @@ function renderCover(){
   } else if(!cover&&coverEl){ coverEl.remove(); coverEl=null; }
   if(coverEl){ const t=coverEl.firstElementChild; if(t.textContent!==title) t.textContent=title; }
 }
+/* 行の先頭に「○」を入力したら、その段落を柱にする（「○」は柱の書式で自動的に付くので、入力した「○」は取り除く） */
+function autoHashira(){
+  let p=0, s=0, ch=false;
+  for(let k=0;k<=doc.length;k++){
+    if(k<doc.length&&doc[k]!=='\n') continue;
+    const t=types[p];
+    if(t==='togaki'||t==='serifu'||t==='plain'){
+      let j=s; while(j<k&&(doc[j]==='　'||doc[j]===' ')) j++;
+      if(j<k&&(doc[j]==='○'||doc[j]==='◯')){
+        let e=j+1; while(e<k&&(doc[e]==='　'||doc[e]===' ')) e++;
+        const n=e-s; doc.splice(s,n); types[p]='hashira'; k-=n; ch=true;
+        if(caret>s) caret=Math.max(s,caret-n);
+        if(anchor!=null&&anchor>s) anchor=Math.max(s,anchor-n);
+      }
+    }
+    p++; s=k+1;
+  }
+  if(ch) changed=true;
+}
 function render(){
+  if(!composing) autoHashira();
   L=layout(doc); P=buildParas();
   renderCover();
   const n=Math.max(1,Math.ceil(L.cols.length/PER));
