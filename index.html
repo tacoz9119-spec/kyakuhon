@@ -162,6 +162,7 @@ html.nolint #lint{display:none}
 #lList button{width:100%;display:flex;flex-direction:column;gap:1px;text-align:left;background:transparent;border:0;border-radius:6px;padding:5px 6px}
 #lList button:hover{background:var(--desk)}
 #lList li{display:flex;flex-direction:column}
+.lnk{border:0;background:transparent;color:var(--accent);text-decoration:underline;font:inherit;font-size:12px;padding:0;cursor:pointer}
 #lList .lfix{width:auto;align-self:flex-start;margin:0 0 4px 6px;font-size:12px!important;min-height:28px;padding:0 10px;border:1px solid var(--edge);border-radius:6px;background:var(--paper);color:var(--ink)}
 #lList .m{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
 #lList .k{font-size:12px;font-weight:700;color:var(--accent)}
@@ -345,6 +346,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
     <p class="small">句読点やカギ括弧の重複、閉じていないカッコ、半角文字、柱・ト書き・セリフの書式の誤りを表示します。</p>
     <ol id="lList"></ol>
     <p class="small" id="lEmpty" hidden>誤りは見つかりません。</p>
+    <p class="small" id="lIgn" hidden><span id="lIgnN"></span>　<button type="button" id="lIgnReset" class="lnk">すべて知らせるように戻す</button></p>
   </section>
   <section class="tab" id="tabFind" hidden>
     <div class="fbox">
@@ -1245,7 +1247,10 @@ document.querySelectorAll('.nbox textarea').forEach(el=>el.addEventListener('inp
   const k=el.dataset.key; if(el.value) notes[k]=el.value; else delete notes[k];
   markDirty(); saveCache();
 }));
+$('lIgnReset').addEventListener('click',()=>{ delete notes.lintIgnore; markDirty(); lintSig=''; lintListSig=''; runLint(); });
 $('lList').addEventListener('click',e=>{
+  const g=e.target.closest('button.lign');
+  if(g){ const set=new Set(String(notes.lintIgnore||'').split(',').filter(Boolean)); set.add(g.dataset.g); notes.lintIgnore=[...set].join(','); markDirty(); lintSig=''; runLint(); return; }
   const f=e.target.closest('button.lfix');
   if(f){ /* 場所の部分を「同」に置き換える（後ろから置き換えて位置がずれないようにする） */
     const x=lints[+f.dataset.f]; if(!x||!x.fix) return;
@@ -1356,7 +1361,8 @@ function findLints(){
   /* 書式のミス */
   const head=(x,n)=>doc.slice(x.start,Math.min(x.end,x.start+(n||24))).join('');
   const SERIFU=/^[　 ]*([^「『　 ]{1,16})[「『]/;
-  let firstScene=true, prevPlace=null;
+  let firstScene=true, prevPlace=null, prevTime=null;
+  const ign=new Set(String(notes.lintIgnore||'').split(',').filter(Boolean));
   /* 柱の場所：「・」で区切った部分ごとに、原稿の中の位置を持つ（末尾の「（夜）」などの時間は除く）。「同」は直前の柱の同じ位置の場所に読み替える */
   const placeOf=x=>{
     const t=doc.slice(x.start,x.end).join('');
@@ -1364,6 +1370,8 @@ function findLints(){
     let b=t.length; const tm=t.slice(a).match(/[（(][^（）()]*[）)][　 ]*$/); if(tm) b=t.length-tm[0].length;
     const segs=[]; let st=a;
     for(let i=a;i<=b;i++){ if(i===b||t[i]==='・'||t[i]==='･'){ let p=st, q=i; while(p<q&&/[　 ]/.test(t[p])) p++; while(q>p&&/[　 ]/.test(t[q-1])) q--; segs.push({text:t.slice(p,q),a:x.start+p,b:x.start+q}); st=i+1; } }
+    segs.time=tm?tm[0].trim().replace(/[()]/g,c=>c==='('?'（':'）'):'';
+    if(segs.time==='（昼）') segs.time='';   /* 時間の指定がなければ昼 */
     return segs;
   };
   for(const x of P){
@@ -1385,7 +1393,11 @@ function findLints(){
         }
         for(;k<segs.length;k++) resolved.push(segs[k].text);
         if(fixes.length) out.push({a:fixes[0].a,b:fixes[fixes.length-1].b,k:'前の柱と同じ場所（「同」にできます）',fix:fixes});
-        prevPlace=resolved;
+        /* 場所も時間も直前の柱と同じなら、確認を促す（「この柱は知らせない」にした柱は除く） */
+        const pid=String(pids[x.p]);
+        if(prevPlace&&resolved.length===prevPlace.length&&resolved.every((r,j)=>r===prevPlace[j])&&segs.time===prevTime&&!ign.has(pid))
+          out.push({a:x.start,b:x.end,k:'前の柱と場所・時間が同じです。確認してください',ign:pid});
+        prevPlace=resolved; prevTime=segs.time;
       }
     }
     else if(x.t==='serifu'&&!SERIFU.test(h)) out.push({a:x.start,b:x.start+1,k:'セリフの形（人物名「…」）になっていない'});
@@ -1410,9 +1422,11 @@ function drawLint(){
 function renderLintList(){
   $('lCount').textContent=lints.length?lints.length+'件':'';
   $('lEmpty').hidden=lints.length>0;
+  const ni=String(notes.lintIgnore||'').split(',').filter(Boolean).length;
+  $('lIgn').hidden=!ni; $('lIgnN').textContent=`「知らせない」にした柱：${ni}件`;
   const sig=lintSig; if(sig===lintListSig) return; lintListSig=sig;
   const snip=(a,b)=>esc(doc.slice(a,b).join('').replace(/\n/g,'／'));
-  $('lList').innerHTML=lints.slice(0,300).map((x,k)=>`<li><button type="button" data-i="${x.a}"><span class="m">${posLabel(colOf(x.a))}</span><span class="k">${esc(x.k)}</span><span class="s">${snip(Math.max(0,x.a-8),x.a)}<mark>${snip(x.a,x.b)}</mark>${snip(x.b,Math.min(doc.length,x.b+8))}</span></button>${x.fix?`<button type="button" class="lfix" data-f="${k}">修正する</button>`:''}</li>`).join('')
+  $('lList').innerHTML=lints.slice(0,300).map((x,k)=>`<li><button type="button" data-i="${x.a}"><span class="m">${posLabel(colOf(x.a))}</span><span class="k">${esc(x.k)}</span><span class="s">${snip(Math.max(0,x.a-8),x.a)}<mark>${snip(x.a,x.b)}</mark>${snip(x.b,Math.min(doc.length,x.b+8))}</span></button>${x.fix?`<button type="button" class="lfix" data-f="${k}">修正する</button>`:''}${x.ign?`<button type="button" class="lfix lign" data-g="${esc(x.ign)}">この柱は知らせない</button>`:''}</li>`).join('')
     +(lints.length>300?`<li class="small">ほか${lints.length-300}件</li>`:'');
 }
 function renderFindList(){
