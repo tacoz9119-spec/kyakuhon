@@ -276,6 +276,8 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
 #plotBox{flex:1 1 auto;min-height:0}
 #nt-plot{flex:1 1 auto;min-height:12em;resize:none}
 #castBox{margin-bottom:8px}
+.tabhead.ttl{padding:0 2px}
+.tabhead .lbl{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.06em}
 #nt-cast{min-height:10.3em}   /* 人物一覧だけ、ほかの欄より約2.5行分高く */
 </style>
 <script src="firebase-config.js"></script>
@@ -324,10 +326,10 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
 
   <section class="tab" id="tabPeople" hidden>
     <div class="nbox" id="castBox"><label for="nt-cast">人物一覧</label><textarea id="nt-cast" data-key="cast" rows="8"></textarea></div>
-    <div class="tabhead"><span id="pplCount"></span><span class="small">セリフの多い順</span></div>
+    <div class="tabhead ttl"><span class="lbl">セリフの多い順</span><span id="pplCount"></span></div>
+    <p class="small" id="pplHelp">「#」の数字は、柱一覧の場面の番号です。押すと、その場面で最初に話すセリフに移動します。</p>
     <ul id="pplList"></ul>
     <p class="small" id="pplEmpty" hidden>セリフ（「名前「…」」の形の段落）がまだありません。</p>
-    <p class="small" id="pplHelp">「#」の数字は、柱一覧の場面の番号です。押すと、その場面で最初に話すセリフに移動します。</p>
   </section>
 
   <section class="tab" id="tabNotes" hidden>
@@ -336,9 +338,9 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
 
   <section class="tab" id="tabLint" hidden>
     <div class="tabhead"><span id="lCount"></span><span class="small">原稿の順</span></div>
+    <p class="small">句読点やカギ括弧の重複、閉じていないカッコ、半角文字、柱・ト書き・セリフの書式の誤りを表示します。</p>
     <ol id="lList"></ol>
     <p class="small" id="lEmpty" hidden>誤りは見つかりません。</p>
-    <p class="small">句読点やカギ括弧の重複、閉じていないカッコ、半角文字、柱・ト書き・セリフの書式の誤りを表示します。</p>
   </section>
   <section class="tab" id="tabFind" hidden>
     <div class="fbox">
