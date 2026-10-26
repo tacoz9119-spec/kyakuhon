@@ -126,6 +126,22 @@ main{flex:1 1 auto;min-width:0;padding-left:max(16px,env(safe-area-inset-left,0p
   border:1px solid var(--edge);border-radius:6px;padding:7px 8px}
 .fbox input:focus{outline:2px solid var(--accent);outline-offset:0}
 .frow{display:flex;gap:6px;align-items:center}
+.rrow{flex-wrap:wrap;margin-top:4px}
+#rToggle[aria-pressed="true"],.rmode button[aria-pressed="true"]{background:var(--ink)!important;border-color:var(--ink)!important;color:var(--paper)!important}
+.rmode{display:inline-flex;gap:4px}
+.rmode button{font-size:12px!important;min-height:30px!important;padding:0 8px!important}
+#rList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+#rList button{width:100%;display:flex;flex-direction:column;gap:1px;text-align:left;background:transparent;border:0;border-radius:6px;padding:5px 6px}
+#rList button:hover{background:var(--desk)}
+#rList .m{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+#rList .r{font-family:var(--f-ui);font-size:13px;font-weight:600}
+#rList .r small{font-weight:400;color:var(--muted)}
+#rList .s{font-family:var(--f-ui);font-size:12px;line-height:1.45;word-break:break-all}
+#rList mark{background:var(--hit);color:inherit;border-radius:2px}
+#rList .gh{font-family:var(--f-ui);font-size:14px;font-weight:700;padding:8px 6px 2px;border-top:1px solid var(--edge);display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+#rList .gh:first-child{border-top:0}
+#rList .gh .w{font-size:11px;font-weight:700;color:var(--accent)}
+#rList .gh .c{font-size:11px;font-weight:400;color:var(--muted)}
 .frow button{flex:0 0 auto;font-size:13px!important;min-height:32px;padding:0 10px;border:1px solid var(--edge);border-radius:6px;background:var(--paper)}
 .frow button:disabled{opacity:.38;cursor:default}
 #fCount{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;margin-left:auto}
@@ -331,8 +347,20 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <input id="fR" type="text" placeholder="置換後の語句" autocomplete="off" spellcheck="false" aria-label="置換後の語句">
       <div class="frow"><button id="fRep" type="button">置換</button><button id="fAll" type="button">すべて置換</button></div>
       <p class="small">Enterで次へ、Shift＋Enterで前へ。Escで原稿に戻ります。</p>
+      <div class="frow rrow">
+        <button id="rToggle" type="button" aria-pressed="false">ルビの一覧</button>
+        <span class="pbtns rmode" id="rMode" role="group" aria-label="並べ方" hidden>
+          <button type="button" data-rm="order" aria-pressed="true">原稿の順</button>
+          <button type="button" data-rm="base" aria-pressed="false">親文字ごと</button>
+        </span>
+      </div>
     </div>
     <ol id="fList"></ol>
+    <div id="rBox" hidden>
+      <div class="tabhead"><span id="rCount"></span></div>
+      <ol id="rList"></ol>
+      <p class="small" id="rEmpty" hidden>ルビを付けた箇所はありません。</p>
+    </div>
   </section>
 </aside>
 <main>
@@ -1165,7 +1193,7 @@ function updatePanels(){
   /* 登場人物 */
   if(tab==='people') updatePeople(items);
   if(notesFor!==curId){ notesFor=curId; document.querySelectorAll('.nbox textarea').forEach(el=>{ el.value=notes[el.dataset.key]||''; }); }
-  if(tab==='find') renderFindList();
+  if(tab==='find'){ renderFindList(); if(rubyMode) renderRubyList(); }
   if(tab==='lint') renderLintList();
 }
 $('olList').addEventListener('click',e=>{
@@ -1228,9 +1256,49 @@ function curHit(){
   return hits.indexOf(r[0]);
 }
 function drawHits(){
+  if(tab==='find'&&rubyMode&&L&&G){ hitsLayer.innerHTML=spanBoxes(rubyRuns(doc).slice(0,2000).map(g=>[g.bs,g.be])); return; }
   if(tab!=='find'||!hits.length||!L||!G){ hitsLayer.innerHTML=''; return; }
   hitsLayer.innerHTML=spanBoxes(hits.slice(0,2000).map(h=>[h,h+fqLen]));
 }
+/* ルビの一覧：原稿の順／親文字ごと */
+let rubyMode=false, rubyOrder='order', rSig='';
+function renderRubyList(){
+  const gs=rubyRuns(doc);
+  const sig=rubyOrder+'|'+gs.map(g=>g.s+':'+g.e).join(',')+'|'+L.mainCol+'|'+doc.length;
+  if(sig===rSig) return; rSig=sig;
+  const txt=(a,b)=>doc.slice(a,b).join('');
+  /* 前後の文：ルビは「親文字（よみ）」の形にし、途中で切れた記号は外す */
+  const before=a=>{ let t=rubyParen(txt(Math.max(0,a-40),a)); const k=t.lastIndexOf('》'); if(k>=0&&t.indexOf('《')<0) t=t.slice(k+1); t=t.replace(/[｜《》]/g,''); return esc(t.slice(-8).replace(/\n/g,'／')); };
+  const after=b=>{ let t=rubyParen(txt(b,Math.min(doc.length,b+40))); const k=t.indexOf('《'); if(k>=0&&t.indexOf('》',k)<0) t=t.slice(0,k); t=t.replace(/[｜《》]/g,''); return esc(t.slice(0,8).replace(/\n/g,'／')); };
+  const item=g=>`<li><button type="button" data-i="${g.s}"><span class="m">${posLabel(colOf(g.bs))}</span><span class="r">${esc(txt(g.bs,g.be))}<small>（${esc(txt(g.rs,g.re))}）</small></span><span class="s">${before(g.s)}<mark>${esc(txt(g.bs,g.be))}</mark>${after(g.e)}</span></button></li>`;
+  $('rCount').textContent=gs.length?gs.length+'か所':'';
+  $('rEmpty').hidden=gs.length>0;
+  if(rubyOrder==='order'){ $('rList').innerHTML=gs.slice(0,500).map(item).join(''); return; }
+  const by=new Map();
+  for(const g of gs){ const k=txt(g.bs,g.be); if(!by.has(k)) by.set(k,[]); by.get(k).push(g); }
+  let h='';
+  for(const [base,list] of by){
+    const reads=[...new Set(list.map(g=>txt(g.rs,g.re)))];
+    h+=`<li class="gh"><span>${esc(base)}<small class="c">　${esc(reads.join('・'))}</small></span>${reads.length>1?`<span class="w">読みが${reads.length}種類</span>`:`<span class="c">${list.length}か所</span>`}</li>`;
+    h+=list.map(item).join('');
+  }
+  $('rList').innerHTML=h;
+}
+function setRubyMode(on){
+  rubyMode=on; rSig='';
+  $('rToggle').setAttribute('aria-pressed',String(on)); $('rMode').hidden=!on;
+  $('rBox').hidden=!on; $('fList').hidden=on;
+  if(on) renderRubyList();
+  drawHits();
+}
+$('rToggle').addEventListener('click',()=>setRubyMode(!rubyMode));
+$('rMode').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-rm]'); if(!b) return;
+  rubyOrder=b.dataset.rm; rSig='';
+  $('rMode').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+  renderRubyList();
+});
+$('rList').addEventListener('click',e=>{ const b=e.target.closest('button[data-i]'); if(b) jumpTo(+b.dataset.i); });
 let fSig='';
 /* ---------- 校正：句読点・カギ括弧の重複、カッコの閉じ忘れ ---------- */
 let lints=[], lintSig='', lintListSig='';
