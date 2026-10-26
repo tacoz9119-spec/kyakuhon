@@ -161,6 +161,8 @@ html.nolint #lint{display:none}
 #lList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
 #lList button{width:100%;display:flex;flex-direction:column;gap:1px;text-align:left;background:transparent;border:0;border-radius:6px;padding:5px 6px}
 #lList button:hover{background:var(--desk)}
+#lList li{display:flex;flex-direction:column}
+#lList .lfix{width:auto;align-self:flex-start;margin:0 0 4px 6px;font-size:12px!important;min-height:28px;padding:0 10px;border:1px solid var(--edge);border-radius:6px;background:var(--paper);color:var(--ink)}
 #lList .m{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
 #lList .k{font-size:12px;font-weight:700;color:var(--accent)}
 #lList .s{font-family:var(--f-ui);font-size:12px;line-height:1.45;word-break:break-all}
@@ -1243,7 +1245,16 @@ document.querySelectorAll('.nbox textarea').forEach(el=>el.addEventListener('inp
   const k=el.dataset.key; if(el.value) notes[k]=el.value; else delete notes[k];
   markDirty(); saveCache();
 }));
-$('lList').addEventListener('click',e=>{ const b=e.target.closest('button[data-i]'); if(b) jumpTo(+b.dataset.i); });
+$('lList').addEventListener('click',e=>{
+  const f=e.target.closest('button.lfix');
+  if(f){ /* 場所の部分を「同」に置き換える（後ろから置き換えて位置がずれないようにする） */
+    const x=lints[+f.dataset.f]; if(!x||!x.fix) return;
+    snapshot('replace'); lastKind='';
+    for(const r of [...x.fix].sort((p,q)=>q.a-p.a)) doc.splice(r.a,r.b-r.a,'同');
+    anchor=null; caret=Math.min(x.a+1,doc.length); render(); return;
+  }
+  const b=e.target.closest('button[data-i]'); if(b) jumpTo(+b.dataset.i);
+});
 $('pplList').addEventListener('click',e=>{ const b=e.target.closest('button[data-i]'); if(b) jumpTo(+b.dataset.i); });
 
 /* 検索・置換 */
@@ -1345,7 +1356,16 @@ function findLints(){
   /* 書式のミス */
   const head=(x,n)=>doc.slice(x.start,Math.min(x.end,x.start+(n||24))).join('');
   const SERIFU=/^[　 ]*([^「『　 ]{1,16})[「『]/;
-  let firstScene=true;
+  let firstScene=true, prevPlace=null;
+  /* 柱の場所：「・」で区切った部分ごとに、原稿の中の位置を持つ（末尾の「（夜）」などの時間は除く）。「同」は直前の柱の同じ位置の場所に読み替える */
+  const placeOf=x=>{
+    const t=doc.slice(x.start,x.end).join('');
+    let a=0; while(a<t.length&&/[　 ○◯]/.test(t[a])) a++;
+    let b=t.length; const tm=t.slice(a).match(/[（(][^（）()]*[）)][　 ]*$/); if(tm) b=t.length-tm[0].length;
+    const segs=[]; let st=a;
+    for(let i=a;i<=b;i++){ if(i===b||t[i]==='・'||t[i]==='･'){ let p=st, q=i; while(p<q&&/[　 ]/.test(t[p])) p++; while(q>p&&/[　 ]/.test(t[q-1])) q--; segs.push({text:t.slice(p,q),a:x.start+p,b:x.start+q}); st=i+1; } }
+    return segs;
+  };
   for(const x of P){
     if(x.start===x.end) continue;
     const h=head(x);
@@ -1354,6 +1374,18 @@ function findLints(){
       if(x.p>=L.frontEnd){
         if(firstScene&&/^[　 ]*[○◯]?[　 ]*同[　 ]*[・･]/.test(h)) out.push({a:x.start,b:x.start+1,k:'最初の柱が「同・」で始まっている'});
         firstScene=false;
+        /* 直前の柱と同じ場所なら、「同」にできることを知らせる */
+        const segs=placeOf(x), resolved=[], fixes=[];
+        let k=0;
+        for(;k<segs.length;k++){
+          const sg=segs[k], pv=prevPlace&&prevPlace[k];
+          if(sg.text==='同'){ resolved.push(pv!=null?pv:'同'); continue; }
+          if(pv!=null&&sg.text&&sg.text===pv){ fixes.push({a:sg.a,b:sg.b}); resolved.push(sg.text); continue; }
+          break;
+        }
+        for(;k<segs.length;k++) resolved.push(segs[k].text);
+        if(fixes.length) out.push({a:fixes[0].a,b:fixes[fixes.length-1].b,k:'前の柱と同じ場所（「同」にできます）',fix:fixes});
+        prevPlace=resolved;
       }
     }
     else if(x.t==='serifu'&&!SERIFU.test(h)) out.push({a:x.start,b:x.start+1,k:'セリフの形（人物名「…」）になっていない'});
@@ -1380,7 +1412,7 @@ function renderLintList(){
   $('lEmpty').hidden=lints.length>0;
   const sig=lintSig; if(sig===lintListSig) return; lintListSig=sig;
   const snip=(a,b)=>esc(doc.slice(a,b).join('').replace(/\n/g,'／'));
-  $('lList').innerHTML=lints.slice(0,300).map((x,k)=>`<li><button type="button" data-i="${x.a}"><span class="m">${posLabel(colOf(x.a))}</span><span class="k">${esc(x.k)}</span><span class="s">${snip(Math.max(0,x.a-8),x.a)}<mark>${snip(x.a,x.b)}</mark>${snip(x.b,Math.min(doc.length,x.b+8))}</span></button></li>`).join('')
+  $('lList').innerHTML=lints.slice(0,300).map((x,k)=>`<li><button type="button" data-i="${x.a}"><span class="m">${posLabel(colOf(x.a))}</span><span class="k">${esc(x.k)}</span><span class="s">${snip(Math.max(0,x.a-8),x.a)}<mark>${snip(x.a,x.b)}</mark>${snip(x.b,Math.min(doc.length,x.b+8))}</span></button>${x.fix?`<button type="button" class="lfix" data-f="${k}">修正する</button>`:''}</li>`).join('')
     +(lints.length>300?`<li class="small">ほか${lints.length-300}件</li>`:'');
 }
 function renderFindList(){
