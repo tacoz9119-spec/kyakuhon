@@ -455,7 +455,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 0.68</div>
+    <div class="small">Version 0.69</div>
   </div>
 </div>
 <div class="scrim" id="lookPanel" hidden>
@@ -1706,7 +1706,15 @@ ta.addEventListener('compositionend',e=>{
 });
 /* iPad：日本語入力のときは、Command＋C などを押しても、キーが日本語入力に渡され（keyCode 229）、文字として入力されてしまう。
    そこでショートカットをエディタが処理し、日本語入力が受け取った1文字は、入力欄をいったん離れて確定させたうえで捨てる */
-let swallowKey=null;
+let swallowKey=null, roHold=null, roT=0;
+function releaseRO(){
+  clearTimeout(roT); const k=roHold; roHold=null;
+  if(typeof syncWait==='undefined'||!syncWait) ta.readOnly=false;
+  if(typeof dbg==='function') dbg('→ 書き込み不可を解除');
+  /* 書き込めるようにしてから少したっても変換が始まっていなければ、捨てる予定を取り消す */
+  setTimeout(()=>{ if(!composing&&swallowKey&&swallowKey.k===k){ swallowKey=null; if(typeof dbg==='function') dbg('→ 捨てる予定を取り消し'); } },700);
+}
+ta.addEventListener('keyup',e=>{ if(roHold&&!e.metaKey&&!e.ctrlKey){ clearTimeout(roT); roT=setTimeout(releaseRO,250); } });
 const SWALLOW={a:['a','あ'],c:['c'],x:['x'],z:['z'],y:['y']};
 function clipSel(cut){
   const r=selRange(); if(!r||!navigator.clipboard||!navigator.clipboard.writeText) return;
@@ -1717,10 +1725,10 @@ function imeShortcut(e){
   const k=e.key.toLowerCase(); if(!SWALLOW[k]) return false;
   e.preventDefault();
   swallowKey={k,n:(swallowKey&&swallowKey.k===k?swallowKey.n:0)+1};
-  /* 入力欄を一瞬だけ書き込めない状態にして、日本語入力が文字を受け取らないようにする（フォーカスは外さない） */
-  ta.readOnly=true; dbg('→ 書き込み不可にした（'+k+'）'); setTimeout(()=>{ if(typeof syncWait==='undefined'||!syncWait) ta.readOnly=false; dbg('→ 書き込み不可を解除'); },300);
-  /* 日本語入力が文字を受け取らなかった場合に備えて、少したっても変換が始まっていなければ、捨てる予定を取り消す */
-  setTimeout(()=>{ if(!composing&&swallowKey&&swallowKey.k===k){ swallowKey=null; dbg('→ 捨てる予定を取り消し'); } },800);
+  /* Command キーを放すまで入力欄を書き込めない状態にして、日本語入力が文字を受け取らないようにする（フォーカスは外さない）。
+     日本語入力は、書き込めない間に受け取れなかった文字を、書き込めるようになった直後に入れることがあるため、放してから少し待って戻す */
+  ta.readOnly=true; roHold=k; if(typeof dbg==='function') dbg('→ 書き込み不可にした（'+k+'）');
+  clearTimeout(roT); roT=setTimeout(releaseRO,4000);   /* キーを放したことが伝わらない場合に備えて */
   if(k==='c'||k==='x') clipSel(k==='x');
   else if(k==='z') e.shiftKey?restore(redo,undo):restore(undo,redo);
   else if(k==='y') restore(redo,undo);
@@ -2179,7 +2187,7 @@ $('pPno').addEventListener('change',()=>{ showPno=$('pPno').checked; try{ localS
 applyPno();
 $('pDbg').addEventListener('change',()=>{ dbgOn=$('pDbg').checked; $('pDbgN').textContent=dbgOn?'記録中です。iPadで問題が起きる操作をしたあと、ここで「記録をコピー」を押してください。':''; });
 $('pDbgClear').addEventListener('click',()=>{ dbgLog.length=0; $('pDbgN').textContent='記録を消しました'; });
-$('pDbgCopy').addEventListener('click',()=>{ const t='Version 0.68\n'+dbgLog.join('\n'); copyText(t||'（記録なし）'); });
+$('pDbgCopy').addEventListener('click',()=>{ const t='Version 0.69\n'+dbgLog.join('\n'); copyText(t||'（記録なし）'); });
 
 /* 配色：端末の設定に合わせる／ライト／ダーク（この端末に記憶） */
 let themeKey='auto';
