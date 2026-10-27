@@ -449,6 +449,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
+    <div class="small">アプリの版：64（2026年10月27日）</div>
   </div>
 </div>
 <div class="scrim" id="lookPanel" hidden>
@@ -1636,6 +1637,7 @@ function flush(fromIme){
   let i=0; while(i<a.length&&i<b.length&&a[i]===b[i]) i++;
   let j=0; while(j<a.length-i&&j<b.length-i&&a[a.length-1-j]===b[b.length-1-j]) j++;
   const removed=a.length-i-j, added=b.slice(i,b.length-j).join('');
+  if(swallowKey&&Date.now()<swallowKey.t&&!removed&&SWALLOW[swallowKey.k].includes(added.toLowerCase())){ swallowKey=null; lastVal=v; resetTA(); render(); return; }
   for(let k=0;k<removed;k++) deleteBack();
   if(added) insertText(added);
   lastVal=v;
@@ -1674,8 +1676,29 @@ ta.addEventListener('compositionend',()=>{
   ta.classList.remove('composing'); placeCaret();
   scheduleFlush(true);
 });
+/* iPad：日本語入力のときは、Command＋C などを押しても、キーが日本語入力に渡され（keyCode 229）、文字として入力されてしまう。
+   そこでショートカットをエディタが処理し、日本語入力が受け取った1文字は、入力欄をいったん離れて確定させたうえで捨てる */
+let swallowKey=null;
+const SWALLOW={a:['a','あ'],c:['c'],x:['x'],z:['z'],y:['y']};
+function clipSel(cut){
+  const r=selRange(); if(!r||!navigator.clipboard||!navigator.clipboard.writeText) return;
+  navigator.clipboard.writeText(getPlain(r[0],r[1])).then(()=>{ if(cut){ snapshot('cut'); removeSel(); render(); scrollToCaret(); } },
+    ()=>toast(cut?'切り取りできませんでした':'コピーできませんでした'));
+}
+function imeShortcut(e){
+  const k=e.key.toLowerCase(); if(!SWALLOW[k]) return false;
+  e.preventDefault();
+  swallowKey={k,t:Date.now()+1500};
+  setTimeout(()=>{ ta.blur(); setTimeout(()=>ta.focus({preventScroll:true}),40); },0);
+  if(k==='c'||k==='x') clipSel(k==='x');
+  else if(k==='z') e.shiftKey?restore(redo,undo):restore(undo,redo);
+  else if(k==='y') restore(redo,undo);
+  else if(k==='a'){ anchor=0; caret=doc.length; if(!doc.length) anchor=null; render(); }
+  return true;
+}
 ta.addEventListener('keydown',e=>{
   if(syncWait){ e.preventDefault(); return; }
+  if(IPAD&&(e.metaKey||e.ctrlKey)&&e.keyCode===229&&!composing&&imeShortcut(e)) return;
   if(e.isComposing||composing||e.keyCode===229) return;
   const mod=e.metaKey||e.ctrlKey, k=e.key;
   if(mod&&(k==='z'||k==='Z')){ e.preventDefault(); e.shiftKey?restore(redo,undo):restore(undo,redo); return; }
