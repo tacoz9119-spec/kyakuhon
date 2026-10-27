@@ -162,6 +162,14 @@ html.nolint #lint{display:none}
 #lList button{width:100%;display:flex;flex-direction:column;gap:1px;text-align:left;background:transparent;border:0;border-radius:6px;padding:5px 6px}
 #lList button:hover{background:var(--desk)}
 #lList li{display:flex;flex-direction:column}
+/* 右クリックのメニュー */
+#ctxMenu{position:fixed;z-index:60;min-width:168px;padding:5px;background:var(--paper);color:var(--ink);border:1px solid var(--edge);border-radius:9px;box-shadow:0 6px 24px rgba(0,0,0,.18);display:flex;flex-direction:column;font-family:var(--f-ui)}
+#ctxMenu[hidden]{display:none}
+#ctxMenu button{display:flex;align-items:center;gap:8px;text-align:left;border:0;background:transparent;color:inherit;font:inherit;font-size:14px;padding:6px 12px 6px 26px;border-radius:6px;cursor:pointer;position:relative}
+#ctxMenu button:hover:not(:disabled){background:var(--accent);color:#fff}
+#ctxMenu button:disabled{opacity:.38;cursor:default}
+#ctxMenu button[aria-checked="true"]::before{content:"✓";position:absolute;left:9px}
+#ctxMenu hr{border:0;border-top:1px solid var(--edge);margin:4px 6px}
 .lnk{border:0;background:transparent;color:var(--accent);text-decoration:underline;font:inherit;font-size:12px;padding:0;cursor:pointer}
 #lList .lfix{width:auto;align-self:flex-start;margin:0 0 4px 6px;font-size:12px!important;min-height:28px;padding:0 10px;border:1px solid var(--edge);border-radius:6px;background:var(--paper);color:var(--ink)}
 #lList .m{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -441,12 +449,6 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">原稿はこの端末の中に保存され、ログインしていれば同期用のサーバー（Firebase）にも送られます。読み込んだテキストは新しい原稿として追加されます。メモと表紙の設定はテキストには書き出されません。</div>
     </div>
     <div class="pgroup">
-      <h3>不具合の調査</h3>
-      <label class="chk"><input type="checkbox" id="pDbg"> キー入力の記録を取る（調査が終わったら外してください）</label>
-      <div class="pbtns"><button id="pDbgCopy" type="button">記録をコピー</button><button id="pDbgClear" type="button">記録を消す</button></div>
-      <div class="small" id="pDbgN"></div>
-    </div>
-    <div class="pgroup">
       <h3>バックアップ</h3>
       <div class="pbtns">
         <button id="pBackup" type="button">すべての原稿をバックアップ</button>
@@ -455,7 +457,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 0.69</div>
+    <div class="small">Version 0.70</div>
   </div>
 </div>
 <div class="scrim" id="lookPanel" hidden>
@@ -530,6 +532,17 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
   <textarea id="fbText" readonly></textarea>
   <div class="pbtns"><button id="fbClose" type="button">閉じる</button></div>
 </div></div>
+<div id="ctxMenu" role="menu" hidden>
+  <button type="button" role="menuitem" data-act="cut">カット</button>
+  <button type="button" role="menuitem" data-act="copy">コピー</button>
+  <button type="button" role="menuitem" data-act="paste">ペースト</button>
+  <hr>
+  <button type="button" role="menuitem" data-act="ruby">ルビ…</button>
+  <hr>
+  <button type="button" role="menuitemradio" data-act="hashira">柱</button>
+  <button type="button" role="menuitemradio" data-act="togaki">ト書き</button>
+  <button type="button" role="menuitemradio" data-act="serifu">セリフ</button>
+</div>
 <div id="toast" hidden></div>
 
 <script>
@@ -1641,9 +1654,6 @@ const IPAD=navigator.maxTouchPoints>1;
 if(IPAD) document.documentElement.classList.add('ipad');
 let lastVal=S, flushT=0, imeOn=false;
 const imeEl=$('ime');
-/* 不具合の調査用：キー入力の記録（この端末のメモリにだけ保存。ページを閉じると消える） */
-let dbgOn=false; const dbgLog=[]; const dbgT0=Date.now();
-function dbg(s){ if(!dbgOn) return; dbgLog.push(((Date.now()-dbgT0)/1000).toFixed(2)+' '+s); if(dbgLog.length>400) dbgLog.shift(); }
 function resetTA(){ ta.value=S; lastVal=S; ta.classList.remove('clip'); try{ ta.setSelectionRange(1,1); }catch(e){} }
 function flush(fromIme){
   const v=ta.value; if(v===lastVal){ if(IPAD&&v!==S) resetTA(); return; }
@@ -1651,7 +1661,6 @@ function flush(fromIme){
   let i=0; while(i<a.length&&i<b.length&&a[i]===b[i]) i++;
   let j=0; while(j<a.length-i&&j<b.length-i&&a[a.length-1-j]===b[b.length-1-j]) j++;
   const removed=a.length-i-j, added=b.slice(i,b.length-j).join('');
-  dbg(`flush 追加=${JSON.stringify(added)} 削除=${removed} 捨てる予定=${swallowKey?swallowKey.k+'×'+swallowKey.n:'なし'} 選択=${selRange()?'あり':'なし'}`);
   let added2=added;
   if(swallowKey&&!removed){
     /* ショートカットのときに日本語入力が受け取った文字（「c」など）が、確定した文字の先頭に残っていれば、押した回数分だけ捨てる */
@@ -1681,17 +1690,12 @@ function showIme(data){
   imeEl.textContent=t; imeEl.hidden=!t;
 }
 ta.addEventListener('input',e=>{
-  dbg(`input ${e.inputType} data=${JSON.stringify(e.data)} 欄=${JSON.stringify(ta.value.replace(S,''))}`);
   if(syncWait&&!composing){ resetTA(); return; }
   if(clipPrep){ clipPrep=false; resetTA(); return; }
   if(composing){ showIme(''); fitTA(); return; }
   scheduleFlush(false);
 });
-ta.addEventListener('keyup',e=>dbg(`keyup key=${JSON.stringify(e.key)} meta=${e.metaKey}`));
-ta.addEventListener('beforeinput',e=>dbg(`beforeinput ${e.inputType} data=${JSON.stringify(e.data)} readOnly=${ta.readOnly}`));
-ta.addEventListener('compositionupdate',e=>dbg('compositionupdate data='+JSON.stringify(e.data)));
 ta.addEventListener('compositionstart',()=>{
-  dbg('compositionstart 欄='+JSON.stringify(ta.value.replace(S,'')));
   /* 直前の確定分がまだ反映されていなければ、新しい変換が始まる前に反映しておく */
   if(flushT){ clearTimeout(flushT); flushT=0; const f=pendingIme; pendingIme=false; flush(f); }
   composing=true; imeOn=true; imeEl.textContent=''; imeEl.hidden=true;
@@ -1699,7 +1703,6 @@ ta.addEventListener('compositionstart',()=>{
 });
 ta.addEventListener('compositionupdate',e=>{ showIme(e.data); fitTA(); setTimeout(()=>{ if(imeOn) showIme(''); },0); });
 ta.addEventListener('compositionend',e=>{
-  dbg('compositionend data='+JSON.stringify(e.data)+' 欄='+JSON.stringify(ta.value.replace(S,'')));
   composing=false; imeOn=false; imeEl.hidden=true; imeEl.textContent='';
   ta.classList.remove('composing'); placeCaret();
   scheduleFlush(true);
@@ -1710,9 +1713,8 @@ let swallowKey=null, roHold=null, roT=0;
 function releaseRO(){
   clearTimeout(roT); const k=roHold; roHold=null;
   if(typeof syncWait==='undefined'||!syncWait) ta.readOnly=false;
-  if(typeof dbg==='function') dbg('→ 書き込み不可を解除');
   /* 書き込めるようにしてから少したっても変換が始まっていなければ、捨てる予定を取り消す */
-  setTimeout(()=>{ if(!composing&&swallowKey&&swallowKey.k===k){ swallowKey=null; if(typeof dbg==='function') dbg('→ 捨てる予定を取り消し'); } },700);
+  setTimeout(()=>{ if(!composing&&swallowKey&&swallowKey.k===k){ swallowKey=null; } },700);
 }
 ta.addEventListener('keyup',e=>{ if(roHold&&!e.metaKey&&!e.ctrlKey){ clearTimeout(roT); roT=setTimeout(releaseRO,250); } });
 const SWALLOW={a:['a','あ'],c:['c'],x:['x'],z:['z'],y:['y']};
@@ -1727,7 +1729,7 @@ function imeShortcut(e){
   swallowKey={k,n:(swallowKey&&swallowKey.k===k?swallowKey.n:0)+1};
   /* Command キーを放すまで入力欄を書き込めない状態にして、日本語入力が文字を受け取らないようにする（フォーカスは外さない）。
      日本語入力は、書き込めない間に受け取れなかった文字を、書き込めるようになった直後に入れることがあるため、放してから少し待って戻す */
-  ta.readOnly=true; roHold=k; if(typeof dbg==='function') dbg('→ 書き込み不可にした（'+k+'）');
+  ta.readOnly=true; roHold=k;
   clearTimeout(roT); roT=setTimeout(releaseRO,4000);   /* キーを放したことが伝わらない場合に備えて */
   if(k==='c'||k==='x') clipSel(k==='x');
   else if(k==='z') e.shiftKey?restore(redo,undo):restore(undo,redo);
@@ -1736,7 +1738,6 @@ function imeShortcut(e){
   return true;
 }
 ta.addEventListener('keydown',e=>{
-  dbg(`keydown key=${JSON.stringify(e.key)} code=${e.keyCode} meta=${e.metaKey} composing=${composing}/${e.isComposing} readOnly=${ta.readOnly}`);
   if(syncWait){ e.preventDefault(); return; }
   if(IPAD&&(e.metaKey||e.ctrlKey)&&e.keyCode===229&&imeShortcut(e)) return;
   if(e.isComposing||composing||e.keyCode===229) return;
@@ -1801,8 +1802,10 @@ function onClip(e,cut){
 /* 貼り付け：段落の途中に貼るときは、先頭の書式の記号（「○」や字下げ）を外す。空の段落の先頭に貼るときは、1行目の書式も読み取る */
 ta.addEventListener('paste',e=>{
   const cd=e.clipboardData; if(!cd||composing) return;
-  let text=cd.getData('text/plain'); if(!text) return;
-  e.preventDefault();
+  const text=cd.getData('text/plain'); if(!text) return;
+  e.preventDefault(); pasteText(text);
+});
+function pasteText(text){
   text=text.replace(/\r\n?/g,'\n');
   const r=selRange(), at=r?r[0]:caret;
   const pStart=at===0||doc[at-1]==='\n';
@@ -1814,7 +1817,48 @@ ta.addEventListener('paste',e=>{
   insertText(f+rest);
   if(t0) types[p]=t0;
   resetTA(); render(); scrollToCaret();
+}
+/* 右クリックのメニュー：カット・コピー・ペースト、ルビ、書式の切り替え */
+function closeCtx(){ $('ctxMenu').hidden=true; }
+sheets.addEventListener('contextmenu',e=>{
+  if(composing) return;
+  const h=hitPos(e.clientX,e.clientY); if(h==null) return;
+  e.preventDefault();
+  /* 選んだ範囲の外で右クリックしたときは、その位置にカーソルを移す */
+  const r0=selRange();
+  if(!(r0&&h>=r0[0]&&h<=r0[1])){ anchor=null; caret=h; render(); }
+  const r=selRange(), m=$('ctxMenu'), cur=types[paraAt(r?r[0]:caret)];
+  m.querySelector('[data-act="cut"]').disabled=!r;
+  m.querySelector('[data-act="copy"]').disabled=!r;
+  m.querySelector('[data-act="paste"]').disabled=!(navigator.clipboard&&navigator.clipboard.readText);
+  m.querySelector('[data-act="ruby"]').disabled=!rubyTarget();
+  for(const t of ['hashira','togaki','serifu']){ const b=m.querySelector(`[data-act="${t}"]`); b.setAttribute('aria-checked',String(cur===t)); b.disabled=isHead(cur); }
+  m.hidden=false;
+  const w=m.offsetWidth, hh=m.offsetHeight;
+  m.style.left=Math.max(6,Math.min(e.clientX,innerWidth-w-6))+'px';
+  m.style.top=Math.max(6,Math.min(e.clientY,innerHeight-hh-6))+'px';
 });
+$('ctxMenu').addEventListener('contextmenu',e=>e.preventDefault());
+$('ctxMenu').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-act]'); if(!b||b.disabled) return;
+  const act=b.dataset.act; closeCtx();
+  if(act==='cut'||act==='copy'){
+    const r=selRange(); if(!r) return;
+    navigator.clipboard.writeText(getClip(r[0],r[1])).then(()=>{ if(act==='cut'){ snapshot('cut'); removeSel(); render(); scrollToCaret(); } },
+      ()=>toast(act==='cut'?'カットできませんでした':'コピーできませんでした'));
+    ta.focus({preventScroll:true});
+  }
+  else if(act==='paste'){
+    navigator.clipboard.readText().then(t=>{ if(t){ pasteText(t); } ta.focus({preventScroll:true}); },
+      ()=>toast('ペーストできませんでした。Command＋V をお使いください'));
+  }
+  else if(act==='ruby') openRuby(rubyTarget());
+  else { setType(act); ta.focus({preventScroll:true}); }
+});
+document.addEventListener('pointerdown',e=>{ if(!$('ctxMenu').hidden&&!e.target.closest('#ctxMenu')) closeCtx(); },true);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!$('ctxMenu').hidden) closeCtx(); });
+window.addEventListener('scroll',closeCtx,{passive:true});
+window.addEventListener('resize',closeCtx);
 document.addEventListener('copy',e=>onClip(e,false));
 document.addEventListener('cut',e=>onClip(e,true));
 
@@ -2185,9 +2229,6 @@ try{ showPno=localStorage.getItem('genko-pno')!=='0'; }catch(e){}
 function applyPno(){ document.documentElement.classList.toggle('nopno',!showPno); $('pPno').checked=showPno; }
 $('pPno').addEventListener('change',()=>{ showPno=$('pPno').checked; try{ localStorage.setItem('genko-pno',showPno?'1':'0'); }catch(e){} applyPno(); });
 applyPno();
-$('pDbg').addEventListener('change',()=>{ dbgOn=$('pDbg').checked; $('pDbgN').textContent=dbgOn?'記録中です。iPadで問題が起きる操作をしたあと、ここで「記録をコピー」を押してください。':''; });
-$('pDbgClear').addEventListener('click',()=>{ dbgLog.length=0; $('pDbgN').textContent='記録を消しました'; });
-$('pDbgCopy').addEventListener('click',()=>{ const t='Version 0.69\n'+dbgLog.join('\n'); copyText(t||'（記録なし）'); });
 
 /* 配色：端末の設定に合わせる／ライト／ダーク（この端末に記憶） */
 let themeKey='auto';
