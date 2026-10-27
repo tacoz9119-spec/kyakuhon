@@ -1684,6 +1684,15 @@ ta.addEventListener('keydown',e=>{
   if(mod&&(k==='a'||k==='A')){ e.preventDefault(); anchor=0; caret=doc.length; if(!doc.length) anchor=null; render(); return; }
   if(mod&&(k==='f'||k==='F')) return;
   const r=selRange();
+  if(mod&&r&&(k==='c'||k==='C'||k==='x'||k==='X')&&IPAD&&navigator.clipboard&&navigator.clipboard.writeText){
+    /* iPad：入力欄に選択された文字がないと、コピー／切り取りのショートカットが働かず、文字として入力されてしまう。
+       そこで文字の入力を止め、選択範囲をクリップボードに直接書き込む */
+    e.preventDefault();
+    const cut=k==='x'||k==='X', text=getPlain(r[0],r[1]);
+    navigator.clipboard.writeText(text).then(()=>{ if(cut){ snapshot('cut'); removeSel(); render(); scrollToCaret(); } },
+      ()=>toast(cut?'切り取りできませんでした':'コピーできませんでした'));
+    return;
+  }
   if(mod&&r&&(k==='c'||k==='C'||k==='x'||k==='X')){
     /* 選択範囲を入力欄に移して選択状態にし、続くコピー／切り取りイベントで中身を渡す */
     ta.classList.add('clip'); ta.value=getPlain(r[0],r[1]); ta.select(); clipPrep=true;
