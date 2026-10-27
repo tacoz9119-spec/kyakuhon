@@ -449,7 +449,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 0.66</div>
+    <div class="small">Version 0.67</div>
   </div>
 </div>
 <div class="scrim" id="lookPanel" hidden>
@@ -1702,9 +1702,9 @@ function imeShortcut(e){
   e.preventDefault();
   swallowKey={k,n:(swallowKey&&swallowKey.k===k?swallowKey.n:0)+1};
   /* 入力欄を一瞬だけ書き込めない状態にして、日本語入力が文字を受け取らないようにする（フォーカスは外さない） */
-  ta.readOnly=true; setTimeout(()=>{ if(typeof syncWait==='undefined'||!syncWait) ta.readOnly=false; },150);
+  ta.readOnly=true; setTimeout(()=>{ if(typeof syncWait==='undefined'||!syncWait) ta.readOnly=false; },300);
   /* 日本語入力が文字を受け取らなかった場合に備えて、少したっても変換が始まっていなければ、捨てる予定を取り消す */
-  setTimeout(()=>{ if(!composing&&swallowKey&&swallowKey.k===k) swallowKey=null; },400);
+  setTimeout(()=>{ if(!composing&&swallowKey&&swallowKey.k===k) swallowKey=null; },800);
   if(k==='c'||k==='x') clipSel(k==='x');
   else if(k==='z') e.shiftKey?restore(redo,undo):restore(undo,redo);
   else if(k==='y') restore(redo,undo);
@@ -1722,10 +1722,11 @@ ta.addEventListener('keydown',e=>{
   if(mod&&(k==='a'||k==='A')){ e.preventDefault(); anchor=0; caret=doc.length; if(!doc.length) anchor=null; render(); return; }
   if(mod&&(k==='f'||k==='F')) return;
   const r=selRange();
-  if(mod&&r&&(k==='c'||k==='C'||k==='x'||k==='X')&&IPAD&&navigator.clipboard&&navigator.clipboard.writeText){
+  if(mod&&(k==='c'||k==='C'||k==='x'||k==='X')&&IPAD&&navigator.clipboard&&navigator.clipboard.writeText){
     /* iPad：入力欄に選択された文字がないと、コピー／切り取りのショートカットが働かず、文字として入力されてしまう。
        そこで文字の入力を止め、選択範囲をクリップボードに直接書き込む */
-    e.preventDefault();
+    e.preventDefault();   /* 文字を選んでいないときも、「c」「x」が入力されないように止める */
+    if(!r) return;
     const cut=k==='x'||k==='X', text=getClip(r[0],r[1]);
     navigator.clipboard.writeText(text).then(()=>{ if(cut){ snapshot('cut'); removeSel(); render(); scrollToCaret(); } },
       ()=>toast(cut?'切り取りできませんでした':'コピーできませんでした'));
