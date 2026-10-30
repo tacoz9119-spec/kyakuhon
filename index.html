@@ -34,7 +34,7 @@ img{max-width:100%}
 /* Layout: sticky tool bar over a cool desk; 400字詰原稿用紙 (20×20, grey rules, no centre fold) stacked top to bottom */
 :root{
   --desk:#E6E9E9; --paper:#FCFCFB; --bar:#F5F6F6; --edge:#CDD2D3;
-  --rule:#8E9597; --rule-soft:#D3D7D8; --ink:#1D2224; --muted:#5C6668; --accent:#B23F27;
+  --rule:#8E9597; --rule-soft:#D3D7D8; --ink:#1D2224; --muted:#5C6668; --accent:#B23F27; --shu:#C8281E;
   --sel:rgba(178,63,39,.16); --hit:rgba(214,168,30,.30); --scrim:rgba(20,26,28,.42);
   --shadow:0 1px 2px rgba(30,38,40,.10),0 6px 18px rgba(30,38,40,.07);
   --f-text:"Noto Serif JP","Hiragino Mincho ProN","Yu Mincho","YuMincho",serif;
@@ -43,12 +43,12 @@ img{max-width:100%}
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --desk:#131718; --paper:#1E2325; --bar:#181D1E; --edge:#343C3E;
-  --rule:#737B7E; --rule-soft:#394043; --ink:#E7E4DD; --muted:#98A2A4; --accent:#E5835F;
+  --rule:#737B7E; --rule-soft:#394043; --ink:#E7E4DD; --muted:#98A2A4; --accent:#E5835F; --shu:#F0705A;
   --sel:rgba(229,131,95,.24); --hit:rgba(232,190,60,.26); --scrim:rgba(0,0,0,.55);
   --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.3); color-scheme:dark }}
 :root[data-theme="dark"]{
   --desk:#131718; --paper:#1E2325; --bar:#181D1E; --edge:#343C3E;
-  --rule:#737B7E; --rule-soft:#394043; --ink:#E7E4DD; --muted:#98A2A4; --accent:#E5835F;
+  --rule:#737B7E; --rule-soft:#394043; --ink:#E7E4DD; --muted:#98A2A4; --accent:#E5835F; --shu:#F0705A;
   --sel:rgba(229,131,95,.24); --hit:rgba(232,190,60,.26); --scrim:rgba(0,0,0,.55);
   --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.3); color-scheme:dark }
 
@@ -189,7 +189,9 @@ html.nolint #lint{display:none}
 .ctitle{writing-mode:vertical-rl;text-orientation:mixed;font-family:var(--f-ms);font-weight:var(--f-w);font-size:calc(var(--cell)*.78*1.125*var(--fs,1));
   letter-spacing:.22em;line-height:1.7;max-height:calc(var(--cell)*16.5);color:var(--ink)}
 .ctitle:empty::before{content:"（題名未設定）";color:var(--muted)}
-.clabel{position:absolute;left:0;right:0;bottom:calc(var(--cell)*.8);text-align:center;font-size:max(11px,calc(var(--cell)*.36));color:var(--muted)}
+.cvpage .frame{display:none}
+.ch.red{color:var(--shu)}
+.cvtitle{position:absolute;left:30%;right:30%;top:calc(var(--pad) + var(--cell)*1.125*3);display:flex;justify-content:center;cursor:pointer;z-index:3}
 #sheets{position:relative;display:flex;flex-direction:column;align-items:center;gap:28px;touch-action:manipulation;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 
@@ -416,6 +418,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
     <div class="pgroup">
       <h3>表紙・登場人物表・あらすじ（この原稿）</h3>
       <label class="chk"><input type="checkbox" id="pCover"> 表紙を付ける（題名をページ中央に縦書き）</label>
+      <label class="chk"><input type="checkbox" id="pCoverRed"> 表紙のいちばん右の行（コンクール名など）を朱書（赤文字）にする</label>
       <label class="chk"><input type="checkbox" id="pCast"> 登場人物表のページを付ける</label>
       <label class="chk"><input type="checkbox" id="pSyn"> あらすじのページを付ける</label>
       <div class="small">表紙・登場人物表・あらすじの順に本文の前に置き、それぞれ新しいページから始めます。ページ番号は付けず、本文の枚数にも数えません。登場人物表やあらすじを外すと、その内容も消えます（「元に戻す」で復元できます）。</div>
@@ -466,7 +469,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 0.72</div>
+    <div class="small">Version 0.76</div>
   </div>
 </div>
 <div class="scrim" id="lookPanel" hidden>
@@ -562,13 +565,13 @@ const KEY='genko-script-v3', KEY_V2='genko-script-v2', KEY_V1='genko-script-v1';
 const HANG=new Set([...'、。，．,.」』）〕】〉》］｝”’)]']);
 const ASC=/^[\x21-\x7E]$/;
 /* plain＝書式なし。casthead／cast＝登場人物表、synhead／syn＝あらすじのページ（見出しは3字下げ、中身は字下げなし） */
-const FIRST={hashira:0,togaki:3,serifu:0,plain:0,casthead:3,cast:0,synhead:3,syn:0};
-const WRAP={hashira:1,togaki:3,serifu:1,plain:0,casthead:3,cast:0,synhead:3,syn:0};
-const NAMES={hashira:'柱',togaki:'ト書き',serifu:'セリフ',plain:'書式なし',casthead:'登場人物表の見出し',cast:'登場人物表',synhead:'あらすじの見出し',syn:'あらすじ'};
-const CODE={hashira:'h',togaki:'t',serifu:'s',plain:'n',casthead:'c',cast:'k',synhead:'a',syn:'y'};
-const DECODE={h:'hashira',t:'togaki',s:'serifu',n:'plain',c:'casthead',k:'cast',a:'synhead',y:'syn'};
+const FIRST={hashira:0,togaki:3,serifu:0,plain:0,casthead:3,cast:0,synhead:3,syn:0,cvr:0};
+const WRAP={hashira:1,togaki:3,serifu:1,plain:0,casthead:3,cast:0,synhead:3,syn:0,cvr:0};
+const NAMES={hashira:'柱',togaki:'ト書き',serifu:'セリフ',plain:'書式なし',casthead:'登場人物表の見出し',cast:'登場人物表',synhead:'あらすじの見出し',syn:'あらすじ',cvr:'表紙'};
+const CODE={hashira:'h',togaki:'t',serifu:'s',plain:'n',casthead:'c',cast:'k',synhead:'a',syn:'y',cvr:'v'};
+const DECODE={h:'hashira',t:'togaki',s:'serifu',n:'plain',c:'casthead',k:'cast',a:'synhead',y:'syn',v:'cvr'};
 const CAST_HEAD='【登場人物表】', SYN_HEAD='【あらすじ】';
-const isHead=t=>t==='casthead'||t==='synhead';
+const isHead=t=>t==='casthead'||t==='synhead'||t==='cvr';   /* 書式を切り替えられない段落（見出しと表紙の行） */
 /* PDF用：縦書き時に字形を移動(t)・90度回転(r)する文字と、その量（フォント単位）。Noto Serif JPの縦書き字形から算出 */
 const VT={"ぁ":["t",149,140],"ぃ":["t",161,146],"ぅ":["t",161,148],"ぇ":["t",160,148],"ぉ":["t",140,148],"ゕ":["t",160,149],"ゖ":["t",160,148],"っ":["t",144,148],"ゃ":["t",161,134],"ゅ":["t",160,147],"ょ":["t",160,146],"ゎ":["t",161,146],"ァ":["t",161,146],"ィ":["t",160,147],"ゥ":["t",160,146],"ェ":["t",160,148],"ォ":["t",162,146],"ヵ":["t",162,146],"ㇰ":["t",162,146],"ヶ":["t",162,146],"ㇱ":["t",160,146],"ㇲ":["t",160,146],"ッ":["t",160,147],"ㇳ":["t",160,147],"ㇴ":["t",160,148],"ㇵ":["t",160,146],"ㇶ":["t",162,146],"ㇷ":["t",160,147],"ㇸ":["t",160,147],"ㇹ":["t",161,146],"ㇺ":["t",161,146],"ャ":["t",160,147],"ュ":["t",160,146],"ョ":["t",160,148],"ㇻ":["t",160,146],"ㇼ":["t",160,146],"ㇽ":["t",162,148],"ㇾ":["t",160,149],"ㇿ":["t",161,147],"ヮ":["t",161,146],"…":["r",120,880],"‥":["r",120,880],"，":["t",662,670],"．":["t",664,664],"〈":["r",120,880],"〉":["r",120,880],"【":["r",120,880],"】":["r",120,880],"｛":["r",120,824],"｝":["r",120,934],"「":["r",102,880],"」":["r",138,878],"《":["r",120,880],"》":["r",120,880],"〔":["r",120,880],"〕":["r",120,880],"『":["r",120,875],"』":["r",120,885],"（":["r",120,881],"）":["r",120,879],"―":["r",120,880],"〜":["r",120,880],"〟":["r",119,895],"〝":["r",120,865],"、":["t",625,653],"。":["t",593,605],"～":["r",120,880],"＝":["r",120,880],"ー":["r",120,862]};
 /* PDF用：縦書き専用の字形（画面の縦書きと同じ字形）。PDF用フォントでは、この私用領域の文字に縦書き用の字形を割り当ててある */
@@ -627,7 +630,7 @@ function getClip(lo,hi){
   return seg.includes('\n')?getPlain(lo,hi):seg.join('');
 }
 function getPlain(lo,hi){
-  const pre={hashira:'○',togaki:'　　　',serifu:'',plain:'',casthead:'　　　',cast:'',synhead:'　　　',syn:''};
+  const pre={hashira:'○',togaki:'　　　',serifu:'',plain:'',casthead:'　　　',cast:'',synhead:'　　　',syn:'',cvr:''};
   let p=paraAt(lo), out='';
   for(let k=lo;k<hi;k++){
     if(k===0||doc[k-1]==='\n') out+=pre[types[p]]||'';
@@ -650,16 +653,55 @@ function fixTypes(){
 }
 /* 前付け（登場人物表・あらすじ）の段落の範囲。end＝本文の最初の段落 */
 function fronts(){
-  let k=0, cast=null, syn=null;
+  let k=0, cv=null, cast=null, syn=null;
+  /* 表紙：先頭の8つの段落（右端の2行、題名の右の2行、題名の左の2行、左端の2行） */
+  if(types[0]==='cvr'){ while(k<types.length&&types[k]==='cvr') k++; cv=[0,k]; }
   if(types[k]==='casthead'){ const s0=k++; while(k<types.length&&types[k]==='cast') k++; cast=[s0,k]; }
   if(types[k]==='synhead'){ const s0=k++; while(k<types.length&&types[k]==='syn') k++; syn=[s0,k]; }
-  return {cast,syn,end:k};
+  return {cv,cast,syn,end:k};
+}
+/* 以前の版で、表紙の右端・左端の文字をメモの欄に入れていた場合は、表紙の行に移す */
+function migrateCover(){
+  const keys=['coverR1','coverR2','coverL1','coverL2'], had=keys.some(k=>notes[k]);
+  if(cover&&!fronts().cv){
+    const txt=keys.map(k=>[...(notes[k]||'')].slice(0,ROWS));
+    const ins=[]; txt.forEach(t=>{ ins.push(...t,'\n'); });
+    doc=ins.concat(doc); types.splice(0,0,'cvr','cvr','cvr','cvr'); pids.splice(0,0,newPid(),newPid(),newPid(),newPid());
+    caret+=ins.length; changed=true;
+  }
+  /* 表紙の行が4行だった版（0.74）の原稿は、右端の2行のあとに題名の左右の4行を足して8行にする */
+  { const F=fronts(); if(F.cv&&F.cv[1]-F.cv[0]<COVER_COLS.length){
+    const n=COVER_COLS.length-(F.cv[1]-F.cv[0]), q=Math.min(2,F.cv[1]), at=paraStart(q);
+    doc.splice(at,0,...Array(n).fill('\n')); types.splice(q,0,...Array(n).fill('cvr')); pids.splice(q,0,...Array.from({length:n},newPid));
+    if(caret>=at) caret+=n; changed=true; } }
+  if(had){ keys.forEach(k=>delete notes[k]); changed=true; }
+  cover=!!fronts().cv;
+}
+/* 表紙の8行が入るマスの列（右から数えて0〜19列目）。題名は中央（9・10列目）に重ねて表示する */
+const COVER_COLS=[0,1,7,8,11,12,18,19];
+const coverEnd=()=>{ const F=fronts(); return F.cv?paraStart(F.cv[1]):0; };
+/* 表紙の行の付け外し：付けるときは先頭に8つの空の段落を入れ、外すときはその段落ごと消す */
+function setCover(on,quiet){
+  const F=fronts();
+  if(on&&!F.cv){
+    if(!quiet){ snapshot('struct'); lastKind=''; }
+    const n=COVER_COLS.length;
+    doc=Array(n).fill('\n').concat(doc); types.splice(0,0,...Array(n).fill('cvr')); pids.splice(0,0,...Array.from({length:n},newPid));
+    caret+=n; if(anchor!=null) anchor+=n;
+  } else if(!on&&F.cv){
+    const end=paraStart(F.cv[1]);
+    if(!quiet){ snapshot('struct'); lastKind=''; }
+    doc.splice(0,end); types.splice(0,F.cv[1]); pids.splice(0,F.cv[1]);
+    caret=Math.max(0,caret-end); anchor=null; fixTypes();
+  }
+  cover=!!fronts().cv;
 }
 function setDoc(o){
   curId=o.id; title=o.t||''; doc=[...(o.d||'')]; types=(o.y||[]).slice();
   pids=(o.pids||[]).slice(); pidSeq=pids.reduce((m,x)=>Math.max(m,x),0);
   memos=Object.assign({},o.memos||{}); cover=!!o.cover; notes=Object.assign({},o.notes||{}); notesFor=null; mergeActs();
   caret=Math.max(0,Math.min(o.c|0,doc.length)); fixTypes(); titleIn.value=title;
+  migrateCover();
   undo=[]; redo=[]; lastKind=''; anchor=null; memoPid=undefined;
 }
 const newId=()=>'m'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
@@ -947,6 +989,9 @@ function layout(d,opt){
   const pad=()=>{ while(cols.length%PER) cols.push({start:i,end:i,p,t:'fill',cells:[],hang:[],row:0,mark:false,filler:true}); };
   const open=first=>{
     if(first&&p>0&&F.syn&&p===F.syn[0]) pad();
+    if(first&&p>0&&F.cast&&p===F.cast[0]) pad();
+    /* 表紙：それぞれの行を決まった列に置き、あいだの列は空ける */
+    if(first&&F.cv&&p>F.cv[0]&&p<F.cv[1]){ const cc=COVER_COLS[p-F.cv[0]]; if(cc!=null) while(cols.length%PER<cc) cols.push({start:i,end:i,p,t:'fill',cells:[],hang:[],row:0,mark:false,filler:true}); }
     if(first&&ce&&p===ce){ pad(); mainCol=cols.length; }
     const t=types[p]||'togaki';
     col={start:i,p,t,cells:[],hang:[],row:first?FIRST[t]:WRAP[t],mark:false};
@@ -978,7 +1023,7 @@ function layout(d,opt){
     const rd=d.slice(g.rs,g.re), tot=segs.reduce((a,x)=>a+x.n,0); let used=0, acc=0;
     segs.forEach((x,k)=>{ acc+=x.n; const upto=k===segs.length-1?rd.length:Math.round(rd.length*acc/tot); if(upto>used) ruby.push({c:x.c,r0:x.r0,r1:x.r1,text:rd.slice(used,upto).join(''),s:g.s}); used=Math.max(used,upto); });
   }
-  return {cols,slot,endMap,mainCol,frontEnd:ce,tcy,ruby,markup};
+  return {cols,slot,endMap,mainCol,frontEnd:ce,tcy,ruby,markup,cv:!!F.cv};
 }
 function idxAt(col,r){
   for(const x of col.cells) if(x.r>=r) return x.i;
@@ -994,7 +1039,7 @@ function buildParas(){
 }
 const colOf=i=>(i<doc.length&&doc[i]!=='\n'&&L.slot[i])?L.slot[i].c:L.endMap[i];
 function posLabel(c){
-  if(c<L.mainCol){ const t=types[L.cols[c].p]; return `${t==='synhead'||t==='syn'?'あらすじ':'登場人物表'} ${c%PER+1}行`; }
+  if(c<L.mainCol){ if(L.cv&&c<PER) return `表紙 ${c%PER+1}行`; const t=types[L.cols[c].p]; return `${t==='synhead'||t==='syn'?'あらすじ':'登場人物表'} ${c%PER+1}行`; }
   return `${Math.floor((c-L.mainCol)/PER)+1}枚目 ${c%PER+1}行`;
 }
 
@@ -1050,14 +1095,22 @@ function makePage(){
 }
 const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 function renderCover(){
-  if(cover&&!coverEl){
-    coverEl=document.createElement('div'); coverEl.className='page cover'; coverEl.title='題名は上部の入力欄で変更できます';
-    coverEl.innerHTML='<div class="ctitle"></div><div class="clabel">表紙</div>';
-    coverEl.addEventListener('pointerdown',e=>e.stopPropagation());
-    coverEl.addEventListener('click',e=>{ e.stopPropagation(); titleIn.focus(); });
-    sheets.insertBefore(coverEl,sheets.firstElementChild);
-  } else if(!cover&&coverEl){ coverEl.remove(); coverEl=null; }
-  if(coverEl){ const t=coverEl.firstElementChild; if(t.textContent!==title) t.textContent=title; }
+  /* 表紙のページ：表紙の8行の列だけマスを表示し、中央に題名を置く */
+  pages.forEach((pg,k)=>{
+    const on=k===0&&L&&L.cv;
+    pg.el.classList.toggle('cvpage',!!on);
+    const cols=pg.el.querySelectorAll(':scope > .col');
+    cols.forEach((c,j)=>{ c.style.display=on&&!COVER_COLS.includes(j)?'none':''; });
+    let ov=pg.el.querySelector('.cvtitle');
+    if(on&&!ov){
+      ov=document.createElement('div'); ov.className='cvtitle'; ov.title='題名は上部の入力欄で変更できます';
+      ov.innerHTML='<div class="ctitle"></div>';
+      ov.addEventListener('pointerdown',e=>{ e.stopPropagation(); e.preventDefault(); });
+      ov.addEventListener('click',e=>{ e.stopPropagation(); titleIn.focus(); });
+      pg.el.appendChild(ov);
+    } else if(!on&&ov){ ov.remove(); }
+    if(on){ const t=ov.querySelector('.ctitle'); if(t.textContent!==title) t.textContent=title; }
+  });
 }
 /* 行の先頭に「○」を入力したら、その段落を柱にする（「○」は柱の書式で自動的に付くので、入力した「○」は取り除く） */
 function autoHashira(){
@@ -1080,8 +1133,8 @@ function autoHashira(){
 }
 function render(){
   if(!composing) autoHashira();
+  cover=!!fronts().cv;
   L=layout(doc); P=buildParas();
-  renderCover();
   const n=Math.max(1,Math.ceil(L.cols.length/PER));
   while(pages.length<n) pages.push(makePage());
   while(pages.length>n) pages.pop().el.remove();
@@ -1090,10 +1143,11 @@ function render(){
     for(let lc=0;lc<PER;lc++){
       const col=L.cols[p*PER+lc]; if(!col) break;
       if(col.mark){ html+=`<span class="ch" style="--c:${lc};--r:0">○</span>`; sig+='\u0002'; }
+      const red=p===0&&lc===0&&L.cv&&notes.coverRed?' red':'';   /* 表紙のいちばん右の行を朱書にする */
       for(const x of col.cells){
-        if(x.n>1) html+=`<span class="ch tcy" style="--c:${lc};--r:${x.r};--sx:${x.n===2?1:x.n===3?.72:.56}"><span>${esc(x.ch)}</span></span>`;
-        else html+=`<span class="ch${ASC.test(x.ch)?' up':''}" style="--c:${lc};--r:${x.r}">${esc(x.ch)}</span>`;
-        sig+=x.r+x.ch;
+        if(x.n>1) html+=`<span class="ch tcy${red}" style="--c:${lc};--r:${x.r};--sx:${x.n===2?1:x.n===3?.72:.56}"><span>${esc(x.ch)}</span></span>`;
+        else html+=`<span class="ch${ASC.test(x.ch)?' up':''}${red}" style="--c:${lc};--r:${x.r}">${esc(x.ch)}</span>`;
+        sig+=x.r+x.ch+(red?'\u0004':'');
       }
       for(const rb of L.ruby) if(rb.c===p*PER+lc){
         const m=[...rb.text].length, h=rb.r1-rb.r0+1;
@@ -1111,6 +1165,7 @@ function render(){
     const pn=p*PER>=L.mainCol?String(p-L.mainCol/PER+1):'';
     if(pages[p].pnoText!==pn){ pages[p].pno.textContent=pn; pages[p].pnoText=pn; }
   }
+  renderCover();
   if(changed){ changed=false; markDirty(); }
   if(tab==='find') computeHits();
   updateStats(); placeCaret(); drawSel(); drawHits(); runLint(); saveCache(); updateSave(); updatePanels();
@@ -1543,6 +1598,24 @@ function snapshot(kind){
 }
 function insertText(str,back){
   str=str.replace(/\r\n?/g,'\n'); if(!str) return;
+  { /* 表紙の行：改行は次の行への移動にし、1行は20字までにする */
+    const r=selRange(), at=r?r[0]:caret, p0=paraAt(at);
+    if(types[p0]==='cvr'){
+      if(str.includes('\n')&&!r){
+        /* 改行の前までを今の行に入れ、改行のたびに次の行の先頭へ移る（表紙の最後の行のあとは本文に続ける） */
+        const i=str.indexOf('\n'), head=str.slice(0,i), tail=str.slice(i+1);
+        if(head) insertText(head);
+        let k=caret; while(k<doc.length&&doc[k]!=='\n') k++; caret=Math.min(doc.length,k+1); anchor=null;
+        if(tail) insertText(tail);
+        return;
+      }
+      str=str.replace(/\n/g,'');
+      const ps=paraStart(p0); let pe=ps; while(pe<doc.length&&doc[pe]!=='\n') pe++;
+      const sel=r?Math.max(0,Math.min(r[1],pe)-r[0]):0, room=ROWS-((pe-ps)-sel);
+      const arr=[...str]; if(arr.length>room){ str=arr.slice(0,Math.max(0,room)).join(''); toast('表紙の行は20字までです'); }
+      if(!str&&!r) return;
+    }
+  }
   const lines=str.split('\n');
   snapshot(str.length>1||selRange()?'paste':'type');
   removeSel();
@@ -1559,6 +1632,7 @@ function insertText(str,back){
 function deleteBack(){
   if(selRange()){ snapshot('del'); removeSel(); return; }
   if(caret<=0) return;
+  if(doc[caret-1]==='\n'){ const p=paraAt(caret); if(types[p]==='cvr'||types[p-1]==='cvr'){ caret--; return; } }   /* 表紙の行はつなげない */
   snapshot('del');
   if(doc[caret-1]==='\n'){ const p=paraAt(caret); types.splice(p,1); pids.splice(p,1); }
   doc.splice(caret-1,1); caret--;
@@ -1566,6 +1640,7 @@ function deleteBack(){
 function deleteFwd(){
   if(selRange()){ snapshot('del'); removeSel(); return; }
   if(caret>=doc.length) return;
+  if(doc[caret]==='\n'){ const p=paraAt(caret); if(types[p]==='cvr'||types[p+1]==='cvr') return; }
   snapshot('del');
   if(doc[caret]==='\n'){ const p=paraAt(caret)+1; types.splice(p,1); pids.splice(p,1); }
   doc.splice(caret,1);
@@ -1616,7 +1691,7 @@ function setFront(kind,on){
   const head=kind==='cast'?CAST_HEAD:SYN_HEAD, ht=kind==='cast'?'casthead':'synhead', name=kind==='cast'?'登場人物表':'あらすじ';
   if(on&&!cur){
     /* 登場人物表は先頭、あらすじは登場人物表のあと（本文の前）に入れる */
-    const q=kind==='cast'?0:(F.cast?F.cast[1]:0), at=paraStart(q);
+    const c0=F.cv?F.cv[1]:0, q=kind==='cast'?c0:(F.cast?F.cast[1]:c0), at=paraStart(q);
     snapshot('struct'); lastKind='';
     const ins=[...head,'\n','\n'];
     doc=doc.slice(0,at).concat(ins,doc.slice(at)); types.splice(q,0,ht,kind); pids.splice(q,0,newPid(),newPid());
@@ -1643,6 +1718,13 @@ function selRange(){
 }
 function removeSel(){
   const r=selRange(); anchor=null; if(!r) return false;
+  const ce=coverEnd();
+  if(ce&&r[0]<ce){
+    /* 表紙の行にかかる部分は、文字だけを消して行の区切りは残す */
+    if(r[1]>ce){ let k=0; for(let i=ce;i<r[1];i++) if(doc[i]==='\n') k++; const p=paraAt(ce)+1; types.splice(p,k); pids.splice(p,k); doc.splice(ce,r[1]-ce); }
+    for(let i=Math.min(r[1],ce)-1;i>=r[0];i--) if(doc[i]!=='\n') doc.splice(i,1);
+    caret=r[0]; fixTypes(); return true;
+  }
   let k=0; for(let i=r[0];i<r[1];i++) if(doc[i]==='\n') k++;
   const p=paraAt(r[0])+1;
   types.splice(p,k); pids.splice(p,k); doc.splice(r[0],r[1]-r[0]); caret=r[0]; fixTypes();
@@ -1958,7 +2040,7 @@ titleIn.addEventListener('input',()=>{ title=titleIn.value; markDirty(); saveCac
 const fmtDate=t=>{ if(!t) return ''; const d=new Date(t); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`; };
 function refreshPanel(){ if(!$('docsPanel').hidden) renderList(); }
 function renderList(){
-  const F=fronts(); $('pCover').checked=cover; $('pCast').checked=!!F.cast; $('pSyn').checked=!!F.syn;
+  const F=fronts(); $('pCover').checked=cover; $('pCoverRed').checked=!!notes.coverRed; $('pCoverRed').disabled=!cover; $('pCast').checked=!!F.cast; $('pSyn').checked=!!F.syn;
   /* 同期 */
   $('syncOff').hidden=!!CFG; $('syncOut').hidden=!CFG||!!uid; $('syncIn').hidden=!CFG||!uid;
   if(uid){ $('syEmail').textContent=userEmail; $('syLast').textContent=lastSync?fmtDate(lastSync):'まだ同期していません'; }
@@ -2021,6 +2103,7 @@ $('rbOk').addEventListener('click',()=>{
 $('rbDel').addEventListener('click',()=>{ if(rubyT&&rubyT.g) putRuby([...rubyT.base],rubyT.a+[...rubyT.base].length); });
 $('rbRead').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229){ e.preventDefault(); $('rbOk').click(); } if(e.key==='Escape') closeRuby(); });
 $('rbClose').addEventListener('click',closeRuby);
+
 $('rubyPanel').addEventListener('click',e=>{ if(e.target===$('rubyPanel')) closeRuby(); });
 $('bLook').addEventListener('click',()=>{ ta.blur(); $('lookPanel').hidden=false; });
 $('lpClose').addEventListener('click',()=>$('lookPanel').hidden=true);
@@ -2043,14 +2126,15 @@ $('docList').addEventListener('click',async e=>{
   $('docsPanel').hidden=true;
   if(b.dataset.id!==curId) await openDoc(b.dataset.id);
 });
-$('pCover').addEventListener('change',()=>{ cover=$('pCover').checked; markDirty(); render(); if(cover) window.scrollTo(0,0); });
+$('pCover').addEventListener('change',()=>{ setCover($('pCover').checked); $('pCoverRed').disabled=!cover; changed=true; render(); if(cover){ window.scrollTo(0,0); toast('表紙を付けました。右端・題名の右・題名の左・左端の2行ずつに入力できます'); } else toast('表紙を外しました（「元に戻す」で復元できます）'); });
+$('pCoverRed').addEventListener('change',()=>{ if($('pCoverRed').checked) notes.coverRed='1'; else delete notes.coverRed; changed=true; markDirty(); render(); });
 $('pCast').addEventListener('change',()=>{ setFront('cast',$('pCast').checked); $('pCast').checked=!!fronts().cast; });
 $('pSyn').addEventListener('change',()=>{ setFront('syn',$('pSyn').checked); $('pSyn').checked=!!fronts().syn; });
 $('pNew').addEventListener('click',async()=>{ $('docsPanel').hidden=true; await newDoc(); });
 $('pDelete').addEventListener('click',()=>{ $('pDelete').hidden=true; $('pDelConfirm').hidden=false; });
 $('pDelNo').addEventListener('click',()=>{ $('pDelete').hidden=false; $('pDelConfirm').hidden=true; });
 $('pDelYes').addEventListener('click',async()=>{ $('pDelete').hidden=false; $('pDelConfirm').hidden=true; $('docsPanel').hidden=true; await deleteCurrent(); });
-$('pCopy').addEventListener('click',()=>copyText(rubyParen(getPlain(0,doc.length))));
+$('pCopy').addEventListener('click',()=>copyText(rubyParen(getPlain(coverEnd(),doc.length))));
 
 /* ファイルの保存：iPadは共有シート（「ファイル」に保存など）、Macはダウンロード */
 const fileName=ext=>(title||'無題').replace(/[\\/:*?"<>|\u0000-\u001f]/g,'_').slice(0,80)+ext;
@@ -2066,7 +2150,7 @@ async function saveFile(name,data,type){
   a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
-$('pTxt').addEventListener('click',()=>saveFile(fileName('.txt'),rubyParen(getPlain(0,doc.length)),'text/plain;charset=utf-8'));
+$('pTxt').addEventListener('click',()=>saveFile(fileName('.txt'),rubyParen(getPlain(coverEnd(),doc.length)),'text/plain;charset=utf-8'));
 
 /* テキストの読み込み */
 $('pImport').addEventListener('click',()=>$('fileIn').click());
@@ -2187,9 +2271,8 @@ function buildPdf(){
   }
   let first=true;
   const newPage=()=>{ if(!first) pdf.addPage(); first=false; };
-  if(cover){
+  const drawCoverTitle=()=>{
     /* 表紙：題名を本文より2pt大きい約18ptで、ページ中央に縦書き */
-    newPage();
     /* 上は本文の書き出し位置から3字下げ、左右は中央 */
     const tcs=(18*25.4/72)/0.82, ty=top+3*tcs, maxPer=Math.floor((top+ROWS*cs-ty)/tcs);
     const chars=[...(title||'')], colsT=[];
@@ -2197,15 +2280,19 @@ function buildPdf(){
     const tstep=tcs*1.6, totalW=colsT.length?(colsT.length-1)*tstep+tcs:0, x0=(PW+totalW)/2;
     const y0=ty;
     colsT.forEach((cc,j)=>cc.forEach((ch,r)=>{ if(ch!==' '&&ch!=='　') drawCh(ch,x0-j*tstep-tcs,y0+r*tcs,tcs); }));
-  }
+  };
   const LL=layout(doc,{print:true}), cols=LL.cols, n=Math.max(1,Math.ceil(cols.length/PER));
   for(let p=0;p<n;p++){
     newPage();
+    if(p===0&&LL.cv) drawCoverTitle();   /* 表紙の右端・左端の行は、本文と同じように下で出力する */
     for(let lc=0;lc<PER;lc++){
       const col=cols[p*PER+lc]; if(!col) break;
       const x=right-lc*step-cs;
       if(col.mark) drawCh('○',x,top,cs);
+      const red=p===0&&lc===0&&LL.cv&&notes.coverRed;   /* 表紙のいちばん右の行を朱書にする */
+      if(red) pdf.setTextColor(200,40,30);
       for(const c of col.cells){ if(c.n>1) drawTcy(c.ch,x,top+c.r*cs,cs); else if(c.ch!==' '&&c.ch!=='　') drawCh(c.ch,x,top+c.r*cs,cs); }
+      if(red) pdf.setTextColor(0,0,0);
       for(const rb of LL.ruby) if(rb.c===p*PER+lc){
         /* ルビ：親文字の右側に、親文字の高さの中で均等に並べる */
         const rc=[...rb.text], rsz=cs*0.38, H=(rb.r1-rb.r0+1)*cs, y0=top+rb.r0*cs;
