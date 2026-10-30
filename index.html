@@ -10,7 +10,16 @@
 <meta name="apple-mobile-web-app-title" content="脚本エディタ">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="apple-touch-icon" id="touchIcon" href="icon-180.png">
+<script>
+/* ホーム画面のアイコン：iPadはホーム画面に追加したときに1回だけアイコンを取り込む。
+   そのときの外観がダークなら黒背景に白文字、ライトなら白背景に黒文字のアイコンを使う */
+(function(){
+  var l=document.getElementById('touchIcon'), m=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)');
+  function u(){ l.href=(m&&m.matches)?'icon-180-dark.png':'icon-180.png'; }
+  u(); if(m){ if(m.addEventListener) m.addEventListener('change',u); else if(m.addListener) m.addListener(u); }
+})();
+</script>
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png">
@@ -457,7 +466,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 0.71</div>
+    <div class="small">Version 0.72</div>
   </div>
 </div>
 <div class="scrim" id="lookPanel" hidden>
