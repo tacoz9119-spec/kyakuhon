@@ -189,7 +189,6 @@ html.nolint #lint{display:none}
 .ctitle{writing-mode:vertical-rl;text-orientation:mixed;font-family:var(--f-ms);font-weight:var(--f-w);font-size:calc(var(--cell)*.78*1.125*var(--fs,1));
   letter-spacing:.22em;line-height:1.7;max-height:calc(var(--cell)*16.5);color:var(--ink)}
 .ctitle:empty::before{content:"（題名未設定）";color:var(--muted)}
-.cvpage .frame{display:none}
 .ch.red{color:var(--shu)}
 .cvtitle{position:absolute;left:30%;right:30%;top:calc(var(--pad) + var(--cell)*1.125*3);display:flex;justify-content:center;cursor:pointer;z-index:3}
 #sheets{position:relative;display:flex;flex-direction:column;align-items:center;gap:28px;touch-action:manipulation;
@@ -469,7 +468,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 0.76</div>
+    <div class="small">Version 0.78</div>
   </div>
 </div>
 <div class="scrim" id="lookPanel" hidden>
@@ -654,7 +653,7 @@ function fixTypes(){
 /* 前付け（登場人物表・あらすじ）の段落の範囲。end＝本文の最初の段落 */
 function fronts(){
   let k=0, cv=null, cast=null, syn=null;
-  /* 表紙：先頭の8つの段落（右端の2行、題名の右の2行、題名の左の2行、左端の2行） */
+  /* 表紙：先頭の18の段落（題名の右に9行、左に9行） */
   if(types[0]==='cvr'){ while(k<types.length&&types[k]==='cvr') k++; cv=[0,k]; }
   if(types[k]==='casthead'){ const s0=k++; while(k<types.length&&types[k]==='cast') k++; cast=[s0,k]; }
   if(types[k]==='synhead'){ const s0=k++; while(k<types.length&&types[k]==='syn') k++; syn=[s0,k]; }
@@ -669,18 +668,25 @@ function migrateCover(){
     doc=ins.concat(doc); types.splice(0,0,'cvr','cvr','cvr','cvr'); pids.splice(0,0,newPid(),newPid(),newPid(),newPid());
     caret+=ins.length; changed=true;
   }
-  /* 表紙の行が4行だった版（0.74）の原稿は、右端の2行のあとに題名の左右の4行を足して8行にする */
-  { const F=fronts(); if(F.cv&&F.cv[1]-F.cv[0]<COVER_COLS.length){
-    const n=COVER_COLS.length-(F.cv[1]-F.cv[0]), q=Math.min(2,F.cv[1]), at=paraStart(q);
-    doc.splice(at,0,...Array(n).fill('\n')); types.splice(q,0,...Array(n).fill('cvr')); pids.splice(q,0,...Array.from({length:n},newPid));
-    if(caret>=at) caret+=n; changed=true; } }
+  /* 表紙の行が4行（0.74）や8行（0.75・0.76）だった版の原稿は、書いた文字を同じ列に置いたまま18行にする */
+  { const F=fronts(), m=F.cv?F.cv[1]-F.cv[0]:0;
+    if(m&&m<COVER_COLS.length){
+      const old=m===4?[0,1,18,19]:m===8?[0,1,7,8,11,12,18,19]:null, end=paraStart(F.cv[1]);
+      const txt=doc.slice(0,end).join('').split('\n').slice(0,m), lines=COVER_COLS.map(()=> '');
+      txt.forEach((t,j)=>{ const k=old?COVER_COLS.indexOf(old[j]):j; if(k>=0) lines[k]=t; });
+      const ins=[...lines.join('\n')+'\n'];
+      doc=ins.concat(doc.slice(end));
+      types.splice(0,m,...Array(COVER_COLS.length).fill('cvr'));
+      pids.splice(0,m,...pids.slice(0,m),...Array.from({length:COVER_COLS.length-m},newPid));
+      caret=caret>=end?caret+ins.length-end:0; changed=true;
+    } }
   if(had){ keys.forEach(k=>delete notes[k]); changed=true; }
   cover=!!fronts().cv;
 }
-/* 表紙の8行が入るマスの列（右から数えて0〜19列目）。題名は中央（9・10列目）に重ねて表示する */
-const COVER_COLS=[0,1,7,8,11,12,18,19];
+/* 表紙の行が入るマスの列（右から数えて0〜19列目）。中央の9・10列目は題名の場所なので空ける */
+const COVER_COLS=[0,1,2,3,4,5,6,7,8,11,12,13,14,15,16,17,18,19];
 const coverEnd=()=>{ const F=fronts(); return F.cv?paraStart(F.cv[1]):0; };
-/* 表紙の行の付け外し：付けるときは先頭に8つの空の段落を入れ、外すときはその段落ごと消す */
+/* 表紙の行の付け外し：付けるときは先頭に18の空の段落を入れ、外すときはその段落ごと消す */
 function setCover(on,quiet){
   const F=fronts();
   if(on&&!F.cv){
@@ -1095,7 +1101,7 @@ function makePage(){
 }
 const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 function renderCover(){
-  /* 表紙のページ：表紙の8行の列だけマスを表示し、中央に題名を置く */
+  /* 表紙のページ：題名の2列だけマスを隠し、中央に題名を置く */
   pages.forEach((pg,k)=>{
     const on=k===0&&L&&L.cv;
     pg.el.classList.toggle('cvpage',!!on);
@@ -2126,7 +2132,7 @@ $('docList').addEventListener('click',async e=>{
   $('docsPanel').hidden=true;
   if(b.dataset.id!==curId) await openDoc(b.dataset.id);
 });
-$('pCover').addEventListener('change',()=>{ setCover($('pCover').checked); $('pCoverRed').disabled=!cover; changed=true; render(); if(cover){ window.scrollTo(0,0); toast('表紙を付けました。右端・題名の右・題名の左・左端の2行ずつに入力できます'); } else toast('表紙を外しました（「元に戻す」で復元できます）'); });
+$('pCover').addEventListener('change',()=>{ setCover($('pCover').checked); $('pCoverRed').disabled=!cover; changed=true; render(); if(cover){ window.scrollTo(0,0); toast('表紙を付けました。題名の右と左に9行ずつ入力できます'); } else toast('表紙を外しました（「元に戻す」で復元できます）'); });
 $('pCoverRed').addEventListener('change',()=>{ if($('pCoverRed').checked) notes.coverRed='1'; else delete notes.coverRed; changed=true; markDirty(); render(); });
 $('pCast').addEventListener('change',()=>{ setFront('cast',$('pCast').checked); $('pCast').checked=!!fronts().cast; });
 $('pSyn').addEventListener('change',()=>{ setFront('syn',$('pSyn').checked); $('pSyn').checked=!!fronts().syn; });
