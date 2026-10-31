@@ -136,6 +136,10 @@ main{flex:1 1 auto;min-width:0;padding-left:max(16px,env(safe-area-inset-left,0p
 .fbox input:focus{outline:2px solid var(--accent);outline-offset:0}
 .frow{display:flex;gap:6px;align-items:center}
 .rrow{flex-wrap:wrap;margin-top:4px}
+.fbox .fhint{margin:0 0 4px}
+#fList{margin-top:6px}
+.rtools{margin-top:16px;padding-top:12px;border-top:1px solid var(--edge)}
+.rtools .rrow{margin-top:0}
 #rToggle[aria-pressed="true"],.rmode button[aria-pressed="true"]{background:var(--ink)!important;border-color:var(--ink)!important;color:var(--paper)!important}
 .rmode{display:inline-flex;gap:4px}
 .rmode button{font-size:12px!important;min-height:30px!important;padding:0 8px!important}
@@ -373,7 +377,10 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="frow"><button id="fPrev" type="button">前へ</button><button id="fNext" type="button">次へ</button><span id="fCount"></span></div>
       <input id="fR" type="text" placeholder="置換後の語句" autocomplete="off" spellcheck="false" aria-label="置換後の語句">
       <div class="frow"><button id="fRep" type="button">置換</button><button id="fAll" type="button">すべて置換</button></div>
-      <p class="small">Enterで次へ、Shift＋Enterで前へ。Escで原稿に戻ります。</p>
+      <p class="small fhint">Enterで次へ、Shift＋Enterで前へ。Escで原稿に戻ります。</p>
+    </div>
+    <ol id="fList"></ol>
+    <div class="fbox rtools">
       <div class="frow rrow">
         <button id="rToggle" type="button" aria-pressed="false">ルビの一覧</button>
         <span class="pbtns rmode" id="rMode" role="group" aria-label="並べ方" hidden>
@@ -383,7 +390,6 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       </div>
       <p class="small" id="rHelp">ルビを付けた箇所を一覧にします。「親文字ごと」では同じ親文字のルビをまとめ、読みが違うものを知らせます。</p>
     </div>
-    <ol id="fList"></ol>
     <div id="rBox" hidden>
       <div class="tabhead"><span id="rCount"></span></div>
       <ol id="rList"></ol>
@@ -469,7 +475,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 0.80</div>
+    <div class="small">Version 0.81</div>
   </div>
 </div>
 <div class="scrim" id="lookPanel" hidden>
