@@ -376,7 +376,7 @@ html.nogrid .col,html.nogrid .frame{display:none}
   .tools button.pg{min-width:34px;padding:0 5px}
   .sep{margin:6px 2px}
 }
-@media (max-width:1100px){ #title{flex-basis:16vw} }
+@media (max-width:1100px){ #title{flex-basis:16vw} html:not(.ipadapp) #title{flex-basis:11vw;min-width:80px} }
 html.syncwait .tools,html.syncwait main,html.syncwait #outline{pointer-events:none}
 html.syncwait main{opacity:.55;transition:opacity .2s .4s}
 /* メモの箱は、パネルの残りの高さいっぱいに広げる（画面の大きさに合わせて伸び縮み） */
@@ -409,6 +409,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
     <button id="bUndo" class="ico" type="button" disabled aria-label="元に戻す" title="元に戻す"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
     <button id="bRedo" class="ico" type="button" disabled aria-label="やり直す" title="やり直す"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
     <span class="sep"></span>
+    <button id="bMan" type="button">原稿</button>
     <button id="bLook" type="button">外見</button>
     <button id="bDocs" type="button">その他</button>
     <span class="sep"></span>
@@ -545,6 +546,13 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
         </div>
       </div>
     </div>
+    <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
+    <div class="small">Version 1.10</div>
+  </div>
+</div>
+<div class="scrim" id="manPanel" hidden>
+  <div class="panel" role="dialog" aria-labelledby="manTitle">
+    <div class="phead"><h2 id="manTitle">原稿</h2><button id="mpClose" type="button">閉じる</button></div>
     <div class="pgroup" id="docsGroup">
       <h3>保存した原稿</h3>
       <div class="pbtns">
@@ -570,8 +578,6 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       </div>
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
-    <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 1.09</div>
   </div>
 </div>
 <div class="scrim" id="histPanel" hidden>
@@ -2214,7 +2220,7 @@ titleIn.addEventListener('input',()=>{ title=titleIn.value; markDirty(); saveCac
 
 /* ---------- 「その他」パネル ---------- */
 const fmtDate=t=>{ if(!t) return ''; const d=new Date(t); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`; };
-function refreshPanel(){ if(!$('docsPanel').hidden) renderList(); }
+function refreshPanel(){ if(!$('docsPanel').hidden||!$('manPanel').hidden) renderList(); }
 function renderList(){
   const F=fronts(); $('pHnum').checked=!!notes.hnum; $('pCover').checked=cover; $('pCoverRed').checked=!!notes.coverRed; $('pCoverRed').disabled=!cover; $('pCast').checked=!!F.cast; $('pSyn').checked=!!F.syn;
   /* 同期 */
@@ -2235,7 +2241,15 @@ $('bDocs').addEventListener('click',async()=>{
   await saveLocalNow();
   $('docsPanel').hidden=false; renderList();
 });
-$('pClose').addEventListener('click',()=>$('docsPanel').hidden=true);
+$('bMan').addEventListener('click',async()=>{
+  ta.blur(); $('pDelConfirm').hidden=true; $('pDelete').hidden=false; $('syMsg').textContent='';
+  await saveLocalNow();
+  $('manPanel').hidden=false; renderList();
+});
+function closeDP(){ $('docsPanel').hidden=true; $('manPanel').hidden=true; }
+$('mpClose').addEventListener('click',()=>$('manPanel').hidden=true);
+$('manPanel').addEventListener('click',e=>{ if(e.target===$('manPanel')) $('manPanel').hidden=true; });
+$('pClose').addEventListener('click',()=>closeDP());
 /* ルビのメニュー：選んだ文字に付ける／カーソルのあるルビを直す・外す */
 function rubyTarget(){
   const r=selRange();
@@ -2344,7 +2358,7 @@ setInterval(async()=>{
 },60*1000);
 /* 別の端末から届いた変更で、原稿が大きく減ったときに知らせる */
 function histWarnCut(before,after,name){
-  if(before>=200&&after<before*0.7) toast('別の端末の変更で「'+(name||'無題')+'」の文字数が '+before.toLocaleString('ja-JP')+'字から '+after.toLocaleString('ja-JP')+'字に減りました。誤りなら「その他」→「以前の版」から戻せます',9000);
+  if(before>=200&&after<before*0.7) toast('別の端末の変更で「'+(name||'無題')+'」の文字数が '+before.toLocaleString('ja-JP')+'字から '+after.toLocaleString('ja-JP')+'字に減りました。誤りなら「原稿」→「以前の版」から戻せます',9000);
 }
 function histWhen(t){
   const d=new Date(t), hm=d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
@@ -2374,7 +2388,7 @@ async function histRestore(k){
   let x=null; try{ x=await htx('readonly',s=>s.get(k)); }catch(e){}
   if(!x){ toast('この版を読み込めませんでした'); return; }
   const when=histWhen(x.at);
-  $('histPanel').hidden=true; $('docsPanel').hidden=true;
+  $('histPanel').hidden=true; closeDP();
   const o={t:x.title||'',d:x.d||'',y:decodeTypes(x.y),pids:decPids(x.p),memos:x.m||{},cover:!!x.cv,notes:x.n||{}};
   if(x.doc===curId){
     /* 今の原稿を、選んだ版で置き換える（置き換える前の状態は版として残す） */
@@ -2563,7 +2577,7 @@ $('cmpClose').addEventListener('click',()=>$('cmpPanel').hidden=true);
 $('cmpPanel').addEventListener('click',e=>{
   if(e.target===$('cmpPanel')){ $('cmpPanel').hidden=true; return; }
   const b=e.target.closest('button[data-at]'); if(!b) return;
-  $('cmpPanel').hidden=true; $('histPanel').hidden=true; $('docsPanel').hidden=true;
+  $('cmpPanel').hidden=true; $('histPanel').hidden=true; closeDP();
   jumpTo(+b.dataset.at);
 });
 /* ページ送り：いま画面に出ているページから、1ページ・10ページ単位で前後のページへ移る（カーソルは動かさない） */
@@ -2605,20 +2619,20 @@ function syncFields(){
 }
 new MutationObserver(syncFields).observe($('docsPanel'),{attributes:true,attributeFilter:['hidden']});
 new MutationObserver(syncFields).observe($('syncOut'),{attributes:true,attributeFilter:['hidden']});
-$('docsPanel').addEventListener('click',e=>{ if(e.target===$('docsPanel')) $('docsPanel').hidden=true; });
+$('docsPanel').addEventListener('click',e=>{ if(e.target===$('docsPanel')) closeDP(); });
 $('docList').addEventListener('click',async e=>{
   const b=e.target.closest('button[data-id]'); if(!b) return;
-  $('docsPanel').hidden=true;
+  closeDP();
   if(b.dataset.id!==curId) await openDoc(b.dataset.id);
 });
 $('pCover').addEventListener('change',()=>{ setCover($('pCover').checked); $('pCoverRed').disabled=!cover; changed=true; render(); if(cover){ window.scrollTo(0,0); toast('表紙を付けました。題名の右と左に9行ずつ入力できます'); } else toast('表紙を外しました（「元に戻す」で復元できます）'); });
 $('pCoverRed').addEventListener('change',()=>{ if($('pCoverRed').checked) notes.coverRed='1'; else delete notes.coverRed; changed=true; markDirty(); render(); });
 $('pCast').addEventListener('change',()=>{ setFront('cast',$('pCast').checked); $('pCast').checked=!!fronts().cast; });
 $('pSyn').addEventListener('change',()=>{ setFront('syn',$('pSyn').checked); $('pSyn').checked=!!fronts().syn; });
-$('pNew').addEventListener('click',async()=>{ $('docsPanel').hidden=true; await newDoc(); });
+$('pNew').addEventListener('click',async()=>{ closeDP(); await newDoc(); });
 $('pDelete').addEventListener('click',()=>{ $('pDelete').hidden=true; $('pDelConfirm').hidden=false; });
 $('pDelNo').addEventListener('click',()=>{ $('pDelete').hidden=false; $('pDelConfirm').hidden=true; });
-$('pDelYes').addEventListener('click',async()=>{ $('pDelete').hidden=false; $('pDelConfirm').hidden=true; $('docsPanel').hidden=true; await deleteCurrent(); });
+$('pDelYes').addEventListener('click',async()=>{ $('pDelete').hidden=false; $('pDelConfirm').hidden=true; closeDP(); await deleteCurrent(); });
 $('pCopy').addEventListener('click',()=>copyText(rubyParen(getPlain(coverEnd(),doc.length))));
 
 /* ファイルの保存：iPadは共有シート（「ファイル」に保存など）、Macはダウンロード */
@@ -2647,7 +2661,7 @@ $('fileIn').addEventListener('change',async()=>{
   const f=$('fileIn').files[0]; $('fileIn').value=''; if(!f) return;
   let text; try{ text=await readText(f); }catch(e){ toast('このファイルの文字コードは読み込めません'); return; }
   const r=fromPlain(text);
-  $('docsPanel').hidden=true;
+  closeDP();
   await newDoc({t:f.name.replace(/\.[^.]+$/,''),d:r.d,y:r.y});
   toast('「'+(title||'無題')+'」として読み込みました');
 });
