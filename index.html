@@ -296,6 +296,18 @@ html.nogrid .col,html.nogrid .frame{display:none}
 .rbread{font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--edge);border-radius:7px;background:var(--paper);color:var(--ink);width:100%;box-sizing:border-box}
 .tools button.ico{min-width:44px;padding:0 10px;display:inline-flex;align-items:center;justify-content:center}
 .tools button.ico svg{display:block}
+.tools button.pg{min-width:36px;padding:0 6px}
+/* 幅の狭い画面では、題名の欄とボタンを少し詰めて、ページ送りのボタンまで見えるようにする */
+@media (max-width:1240px){
+  #title{flex-basis:min(17.5em,22vw)}
+  .tools{gap:4px}
+  .tools button{padding:0 9px}
+  .tools .seg button{min-width:52px}
+  .tools button.ico{min-width:38px;padding:0 7px}
+  .tools button.pg{min-width:34px;padding:0 5px}
+  .sep{margin:6px 2px}
+}
+@media (max-width:1100px){ #title{flex-basis:20vw} }
 html.syncwait .tools,html.syncwait main,html.syncwait #outline{pointer-events:none}
 html.syncwait main{opacity:.55;transition:opacity .2s .4s}
 /* メモの箱は、パネルの残りの高さいっぱいに広げる（画面の大きさに合わせて伸び縮み） */
@@ -329,6 +341,11 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
     <span class="sep"></span>
     <button id="bLook" type="button">外見</button>
     <button id="bDocs" type="button">その他</button>
+    <span class="sep"></span>
+    <button id="pgUp1" class="ico pg" type="button" aria-label="1ページ戻る" title="1ページ戻る"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 7 18 16H6z"/></svg></button>
+    <button id="pgUp10" class="ico pg" type="button" aria-label="10ページ戻る" title="10ページ戻る"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3.5 17 10.5H7z"/><path d="M12 12.5 17 19.5H7z"/></svg></button>
+    <button id="pgDn1" class="ico pg" type="button" aria-label="1ページ進む" title="1ページ進む"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 17 18 8H6z"/></svg></button>
+    <button id="pgDn10" class="ico pg" type="button" aria-label="10ページ進む" title="10ページ進む"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 11.5 17 4.5H7z"/><path d="M12 20.5 17 13.5H7z"/></svg></button>
   </div>
   <div class="stats" aria-live="polite">
     <span>本文<b id="sPages">1</b>枚・<b id="sChars">0</b>字・<b id="sPos">1枚目 1行</b></span>
@@ -475,7 +492,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 0.81</div>
+    <div class="small">Version 0.82</div>
   </div>
 </div>
 <div class="scrim" id="lookPanel" hidden>
@@ -1178,7 +1195,7 @@ function render(){
     const pn=p*PER>=L.mainCol?String(p-L.mainCol/PER+1):'';
     if(pages[p].pnoText!==pn){ pages[p].pno.textContent=pn; pages[p].pnoText=pn; }
   }
-  renderCover();
+  renderCover(); updPageNav();
   if(changed){ changed=false; markDirty(); }
   if(tab==='find') computeHits();
   updateStats(); placeCaret(); drawSel(); drawHits(); runLint(); saveCache(); updateSave(); updatePanels();
@@ -2132,6 +2149,31 @@ $('rbRead').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.isComposing&&
 $('rbClose').addEventListener('click',closeRuby);
 
 $('rubyPanel').addEventListener('click',e=>{ if(e.target===$('rubyPanel')) closeRuby(); });
+/* ページ送り：いま画面に出ているページから、1ページ・10ページ単位で前後のページへ移る（カーソルは動かさない） */
+function curPageIdx(){
+  const barB=document.querySelector('.bar').getBoundingClientRect().bottom;
+  let best=0, d=Infinity;
+  pages.forEach((pg,k)=>{ const t=Math.abs(pg.el.getBoundingClientRect().top-barB-10); if(t<d){ d=t; best=k; } });
+  return best;
+}
+function goPage(delta){
+  if(!pages.length) return;
+  const k=Math.max(0,Math.min(pages.length-1,curPageIdx()+delta));
+  const barB=document.querySelector('.bar').getBoundingClientRect().bottom;
+  window.scrollBy(0,pages[k].el.getBoundingClientRect().top-barB-10);
+  updPageNav();
+}
+function updPageNav(){
+  if(!pages.length) return;
+  const k=curPageIdx(), last=pages.length-1;
+  $('pgUp1').disabled=$('pgUp10').disabled=k<=0;
+  $('pgDn1').disabled=$('pgDn10').disabled=k>=last;
+}
+[['pgUp1',-1],['pgUp10',-10],['pgDn1',1],['pgDn10',10]].forEach(([id,n])=>{
+  $(id).addEventListener('pointerdown',e=>e.preventDefault());   /* 原稿の入力欄からフォーカスを外さない */
+  $(id).addEventListener('click',()=>goPage(n));
+});
+{ let raf=0; window.addEventListener('scroll',()=>{ if(!raf) raf=requestAnimationFrame(()=>{ raf=0; updPageNav(); }); },{passive:true}); }
 $('bLook').addEventListener('click',()=>{ ta.blur(); $('lookPanel').hidden=false; });
 $('lpClose').addEventListener('click',()=>$('lookPanel').hidden=true);
 $('lookPanel').addEventListener('click',e=>{ if(e.target===$('lookPanel')) $('lookPanel').hidden=true; });
