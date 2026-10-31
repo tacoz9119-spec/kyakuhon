@@ -78,10 +78,10 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 #sSave[data-s="err"]{color:var(--accent);font-weight:700}
 
 .tools{flex:1 1 auto;min-width:0;display:flex;gap:6px;align-items:center;overflow-x:auto;scrollbar-width:none}
-.tools .zoom button{min-width:52px;font-family:var(--f-ui);font-size:13px;font-weight:500}
+.tools .zoom button{min-width:52px;font-family:var(--f-ui);font-size:13px;font-weight:400}
 .tools .lbl{flex:0 0 auto;font-size:11px;color:var(--muted);margin-right:-2px}
 .tools::-webkit-scrollbar{display:none}
-.tools button,.panel button{flex:0 0 auto;font:inherit;font-size:14px;font-weight:500;min-height:38px;padding:0 12px;border-radius:7px;
+.tools button,.panel button{flex:0 0 auto;font:inherit;font-size:14px;font-weight:400;min-height:38px;padding:0 12px;border-radius:7px;
   border:1px solid var(--edge);background:var(--paper);color:var(--ink);cursor:pointer;touch-action:manipulation}
 .tools button.ins{font-family:var(--f-text);font-size:17px;min-width:44px}
 button.danger{color:var(--accent)}
@@ -109,7 +109,7 @@ main{flex:1 1 auto;min-width:0;padding-left:max(16px,env(safe-area-inset-left,0p
 #outline + main{padding-left:16px}
 #outline button{font:inherit;color:var(--ink);cursor:pointer;touch-action:manipulation}
 .tabs{flex:0 0 auto;display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--rule);border-radius:7px;overflow:hidden}
-.tabs button{border:0;border-left:1px solid var(--rule);background:var(--paper);min-height:34px;font-size:13px!important;font-weight:600}
+.tabs button{border:0;border-left:1px solid var(--rule);background:var(--paper);min-height:34px;font-size:13px!important;font-weight:400}
 .tabs button:first-child{border-left:0}
 .tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper)!important}
 .tab{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
@@ -297,6 +297,13 @@ html.nogrid .col,html.nogrid .frame{display:none}
 .tools button.ico{min-width:44px;padding:0 10px;display:inline-flex;align-items:center;justify-content:center}
 .tools button.ico svg{display:block}
 .tools button.pg{min-width:36px;padding:0 6px}
+/* 上のボタンは、左パネルのタブと同じ大きさ（高さ34px・文字13px）にそろえる */
+.tools button{min-height:34px;font-size:13px}
+.panel button{font-size:13px}   /* 「外見」「その他」のパネルのボタンも13pxにそろえる */
+.tools .seg button{min-width:64px}
+.tools button.ico{min-width:40px}
+.tools button.ico svg{width:18px;height:18px}
+.tools button.pg{min-width:34px;padding:0 5px}
 /* 幅の狭い画面では、題名の欄とボタンを少し詰めて、ページ送りのボタンまで見えるようにする */
 @media (max-width:1240px){
   #title{flex-basis:min(17.5em,22vw)}
@@ -492,7 +499,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 0.82</div>
+    <div class="small">Version 0.85</div>
   </div>
 </div>
 <div class="scrim" id="lookPanel" hidden>
