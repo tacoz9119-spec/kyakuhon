@@ -241,7 +241,8 @@ html.ipad #caret{display:none}
 html.ipad #ta.composing{background:var(--paper);color:var(--ink)}
 #ime{position:absolute;z-index:7;min-width:var(--cell);writing-mode:vertical-rl;text-orientation:mixed;white-space:pre-wrap;line-break:anywhere;word-break:break-all;pointer-events:none;
   font-family:var(--f-ms);font-weight:var(--f-w);font-size:calc(var(--cell)*.78*var(--fs,1));line-height:var(--cell);letter-spacing:calc(var(--cell) - var(--cell)*.78*var(--fs,1));
-  background:var(--paper);color:var(--ink);border-radius:2px;text-decoration:underline;text-decoration-color:var(--accent)}
+  color:var(--ink);text-decoration:underline;text-decoration-color:var(--accent)}
+#ime span{background:var(--paper)}   /* 文字のところだけ紙の色で塗り、残りのマス目は見えるようにする */
 
 #toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;
   background:var(--ink);color:var(--paper);font-size:14px;padding:10px 16px;border-radius:8px;pointer-events:none;max-width:calc(100% - 32px)}
@@ -468,7 +469,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 0.79</div>
+    <div class="small">Version 0.80</div>
   </div>
 </div>
 <div class="scrim" id="lookPanel" hidden>
@@ -1798,7 +1799,7 @@ function showIme(data){
   let t=data||'';
   const v=ta.value;
   if(v.startsWith(lastVal)){ const rest=v.slice(lastVal.length); if(rest.length>=t.length) t=rest; }
-  imeEl.textContent=t; imeEl.hidden=!t; layoutIme();
+  imeEl.replaceChildren(); if(t){ const sp=document.createElement('span'); sp.textContent=t; imeEl.appendChild(sp); } imeEl.hidden=!t; layoutIme();
 }
 ta.addEventListener('input',e=>{
   if(syncWait&&!composing){ resetTA(); return; }
