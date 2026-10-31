@@ -510,7 +510,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 0.90</div>
+    <div class="small">Version 0.91</div>
   </div>
 </div>
 <div class="scrim" id="histPanel" hidden>
@@ -717,6 +717,13 @@ function fronts(){
   return {cv,cast,syn,end:k};
 }
 /* 以前の版で、表紙の右端・左端の文字をメモの欄に入れていた場合は、表紙の行に移す */
+/* 以前の版で、見出しのあとを空けるために登場人物表の先頭に空の行を入れていた場合は、その行を取り除く（空きは自動で入るため） */
+function migrateCastGap(){
+  const F=fronts(); if(!F.cast) return;
+  const a=F.cast[0]+1, b=F.cast[1]; if(b-a<2) return;
+  const at=paraStart(a); if(doc[at]!=='\n') return;
+  doc.splice(at,1); types.splice(a,1); pids.splice(a,1); if(caret>at) caret--; changed=true;
+}
 function migrateCover(){
   const keys=['coverR1','coverR2','coverL1','coverL2'], had=keys.some(k=>notes[k]);
   if(cover&&!fronts().cv){
@@ -764,7 +771,7 @@ function setDoc(o){
   pids=(o.pids||[]).slice(); pidSeq=pids.reduce((m,x)=>Math.max(m,x),0);
   memos=Object.assign({},o.memos||{}); cover=!!o.cover; notes=Object.assign({},o.notes||{}); notesFor=null; castSyncFor=null; mergeActs();
   caret=Math.max(0,Math.min(o.c|0,doc.length)); fixTypes(); titleIn.value=title;
-  migrateCover();
+  migrateCover(); migrateCastGap();
   undo=[]; redo=[]; lastKind=''; anchor=null; memoPid=undefined;
 }
 const newId=()=>'m'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
@@ -1057,6 +1064,8 @@ function layout(d,opt){
   const open=first=>{
     if(first&&p>0&&F.syn&&p===F.syn[0]) pad();
     if(first&&p>0&&F.cast&&p===F.cast[0]) pad();
+    /* 登場人物表：見出し（【登場人物表】）と最初の人物の間を1行空ける */
+    if(first&&F.cast&&p===F.cast[0]+1) cols.push({start:i,end:i,p,t:'fill',cells:[],hang:[],row:0,mark:false,filler:true});
     /* 表紙：それぞれの行を決まった列に置き、あいだの列は空ける */
     if(first&&F.cv&&p>F.cv[0]&&p<F.cv[1]){ const cc=COVER_COLS[p-F.cv[0]]; if(cc!=null) while(cols.length%PER<cc) cols.push({start:i,end:i,p,t:'fill',cells:[],hang:[],row:0,mark:false,filler:true}); }
     if(first&&ce&&p===ce){ pad(); mainCol=cols.length; }
