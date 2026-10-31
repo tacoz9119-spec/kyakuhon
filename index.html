@@ -555,7 +555,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 1.01</div>
+    <div class="small">Version 1.02</div>
   </div>
 </div>
 <div class="scrim" id="histPanel" hidden>
@@ -1347,6 +1347,22 @@ function layoutIme(){
   im.style.left=(rightEdge-cols*G.step)+'px';
   if(composing){ ta.style.left=(x-k*G.step)+'px'; ta.style.top=(y+row*G.cell)+'px'; }
 }
+/* iPad：入力欄（カーソルの位置に重ねる見えない欄）の置き場所。
+   ページ送りなどでカーソルのあるページが画面の外にあるときは、入力欄を画面の中に置いておく。
+   入力欄が画面の外にあると、iPadがフォーカスのたびに入力欄の位置（カーソルのページ）までスクロールしてしまうため */
+let taAt=null;
+function placeTA(){
+  if(!taAt||!G||!document.documentElement.classList.contains('ipad')) return;
+  const {x,y,r}=taAt, w=G.step*3, rightEdge=x+G.cell+(G.step-G.cell)/2;
+  const st=sheets.getBoundingClientRect().top, vy=y+st, vis=vy>=topEdge()-2&&vy<=window.innerHeight-G.cell;
+  if(vis||composing){
+    taBox={right:rightEdge,top:y,maxH:Math.max(G.cell*3,(ROWS-Math.min(r,ROWS))*G.cell)};
+    ta.style.left=(rightEdge-w)+'px'; ta.style.top=y+'px'; ta.style.width=w+'px'; ta.style.height=taBox.maxH+'px';
+    if(composing) fitTA();
+  } else {
+    ta.style.left=(rightEdge-w)+'px'; ta.style.top=(topEdge()+G.cell*2-st)+'px'; ta.style.width=w+'px'; ta.style.height=(G.cell*3)+'px';
+  }
+}
 function placeCaret(){
   if(!L||!G||!pages.length) return;
   caretEl.hidden=!!selRange();
@@ -1354,10 +1370,7 @@ function placeCaret(){
   caretEl.style.left=(x+G.cell*.08)+'px'; caretEl.style.top=(y-1)+'px';
   if(document.documentElement.classList.contains('ipad')){
     /* iPad：入力欄は縦書きで、カーソルの行から下に重ねる（変換中はこの入力欄を見せる） */
-    const w=G.step*3, rightEdge=x+G.cell+(G.step-G.cell)/2;
-    taBox={right:rightEdge,top:y,maxH:Math.max(G.cell*3,(ROWS-Math.min(r,ROWS))*G.cell)};
-    ta.style.left=(rightEdge-w)+'px'; ta.style.top=y+'px'; ta.style.width=w+'px'; ta.style.height=taBox.maxH+'px';
-    if(composing) fitTA();
+    taAt={x,y,r}; placeTA();
   } else {
     /* Mac：入力欄は横書きでカーソルのマスに重ねる（変換中の文字は原稿上の枠に表示） */
     ta.style.left=x+'px'; ta.style.top=y+'px'; ta.style.width=Math.max(48,G.cell*2)+'px'; ta.style.height=Math.max(24,G.cell)+'px';
@@ -2467,7 +2480,7 @@ function setFocusMode(on){
   try{ localStorage.setItem('genko-focus',on?'1':''); }catch(e){}
   resize(); render();
   if(pages[k]){ const barB=topEdge(); window.scrollBy(0,pages[k].el.getBoundingClientRect().top-barB-10); }
-  updPageNav(); ta.focus({preventScroll:true});
+  updPageNav(); placeTA(); ta.focus({preventScroll:true});
 }
 $('bFocus').addEventListener('click',()=>setFocusMode(true));
 $('bFocusOff').addEventListener('click',()=>setFocusMode(false));
@@ -2552,7 +2565,7 @@ function goPage(delta){
   const k=Math.max(0,Math.min(pages.length-1,curPageIdx()+delta));
   const barB=topEdge();
   window.scrollBy(0,pages[k].el.getBoundingClientRect().top-barB-10);
-  updPageNav();
+  updPageNav(); placeTA();
 }
 function updPageNav(){
   if(!pages.length) return;
@@ -2564,7 +2577,7 @@ function updPageNav(){
   $(id).addEventListener('pointerdown',e=>e.preventDefault());   /* 原稿の入力欄からフォーカスを外さない */
   $(id).addEventListener('click',()=>goPage(n));
 });
-{ let raf=0; window.addEventListener('scroll',()=>{ if(!raf) raf=requestAnimationFrame(()=>{ raf=0; updPageNav(); }); },{passive:true}); }
+{ let raf=0; window.addEventListener('scroll',()=>{ if(!raf) raf=requestAnimationFrame(()=>{ raf=0; updPageNav(); placeTA(); }); },{passive:true}); }
 $('bLook').addEventListener('click',()=>{ ta.blur(); $('lookPanel').hidden=false; });
 $('lpClose').addEventListener('click',()=>$('lookPanel').hidden=true);
 $('lookPanel').addEventListener('click',e=>{ if(e.target===$('lookPanel')) $('lookPanel').hidden=true; });
