@@ -232,6 +232,14 @@ html.focus:not(.ipad) .bar{display:none}
 #bFocusOff:hover{opacity:1}
 #bFocusOff svg{width:18px;height:18px}
 html.focus #bFocusOff{display:inline-flex}
+#topInfo{display:none}
+html.ipadapp .stats{display:none}
+html.ipadapp #topInfo{display:flex;align-items:center;gap:12px;position:absolute;top:0;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));
+  height:calc(4px + max(0px, 22px - env(safe-area-inset-top,0px)));font-size:11px;line-height:1.2;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none}
+html.ipadapp #topInfo b{color:var(--ink);font-weight:700}
+#tiLeft,#tiRight{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis}
+#tiRight{text-align:right}
+#tiScene{flex:0 1 auto;max-width:44%;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
 html.focus.ipad #bFocusOff{top:calc(env(safe-area-inset-top,0px) + 22px)}
 /* iPadのホーム画面のアプリでは、画面の最上部（時計などが出る帯）をクリック・タップすると、iPadが原稿をいちばん上までスクロールする。
    ツールバーのボタンの上の端がこの帯にかかっていたため、ボタンを押したつもりでも上に飛ぶことがあった。ボタンをこの帯より下に下げる */
@@ -411,6 +419,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
     <span class="sep"></span>
     <button id="bFocus" class="ico" type="button" aria-label="集中モード（原稿だけを表示）" title="集中モード（原稿だけを表示）"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg></button>
   </div>
+  <div id="topInfo"><span id="tiLeft"></span><span id="tiScene"></span><span id="tiRight"></span></div>
   <div class="stats" aria-live="polite">
     <span>本文<b id="sPages">1</b>枚・<b id="sChars">0</b>字・<b id="sPos">1枚目 1行</b></span>
     <span id="sSave">接続中…</span>
@@ -562,7 +571,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 1.08</div>
+    <div class="small">Version 1.09</div>
   </div>
 </div>
 <div class="scrim" id="histPanel" hidden>
@@ -1444,6 +1453,7 @@ function updatePanels(){
     $('olEmpty').hidden=items.length>0;
   }
   let cur=-1; olItems.forEach((x,k)=>{ if(x.i<=caret) cur=k; });
+  { const ts=$('tiScene'); if(ts){ const t=cur>=0?'#'+(cur+1)+'　'+(olItems[cur].text||'（柱の文言なし）'):''; if(ts.textContent!==t) ts.textContent=t; } }
   [...$('olList').children].forEach((li,k)=>li.classList.toggle('cur',k===cur));
   /* 登場人物 */
   if(tab==='people') updatePeople(items);
@@ -1903,6 +1913,12 @@ function copyText(text,then){
    どちらも、確定前後に続けて届く入力の通知は1回分にまとめてから反映する（途中の状態で原稿を書き換えない）。 */
 const IPAD=navigator.maxTouchPoints>1;
 if(IPAD) document.documentElement.classList.add('ipad');
+/* iPadのホーム画面のアプリ：ツールバーの上の余白（押すと一番上に戻るため、ボタンは置けない場所）に、
+   枚数・字数・位置（左）、今いる場面（中央）、同期の状態（右）を表示する。Mac とブラウザのタブでは、これまでどおり右上に出す */
+try{ if(IPAD&&matchMedia('(display-mode: standalone)').matches){
+  document.documentElement.classList.add('ipadapp');
+  const st=document.querySelector('.stats'); $('tiLeft').appendChild(st.firstElementChild); $('tiRight').appendChild($('sSave'));
+} }catch(e){}
 let lastVal=S, flushT=0, imeOn=false;
 const imeEl=$('ime');
 function resetTA(){ ta.value=S; lastVal=S; ta.classList.remove('clip'); try{ ta.setSelectionRange(1,1); }catch(e){} }
