@@ -334,7 +334,8 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
 #rHelp{margin:0}
 .tabhead.ttl{padding:0 2px}
 .tabhead .lbl{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.06em}
-#nt-cast{min-height:10.3em}   /* 人物一覧だけ、ほかの欄より約2.5行分高く */
+#nt-cast{min-height:10.3em}
+.clink{margin-left:8px;font-weight:400;letter-spacing:0;color:var(--muted)}   /* 人物一覧だけ、ほかの欄より約2.5行分高く */
 </style>
 <script src="firebase-config.js"></script>
 <script src="firebase.js"></script>
@@ -386,7 +387,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
   </section>
 
   <section class="tab" id="tabPeople" hidden>
-    <div class="nbox" id="castBox"><label for="nt-cast">人物一覧</label><textarea id="nt-cast" data-key="cast" rows="8"></textarea></div>
+    <div class="nbox" id="castBox"><label for="nt-cast">人物一覧<span id="castLink" class="clink" hidden>登場人物表と連動</span></label><textarea id="nt-cast" data-key="cast" rows="8"></textarea></div>
     <div class="tabhead ttl"><span class="lbl">セリフのある人物</span><span id="pplCount"></span></div>
     <p class="small" id="pplHelp">「#」の数字は、柱一覧の場面の番号です。押すと、その場面で最初に話すセリフに移動します。</p>
     <ul id="pplList"></ul>
@@ -460,7 +461,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <label class="chk"><input type="checkbox" id="pCoverRed"> 表紙のいちばん右の行（コンクール名など）を朱書（赤文字）にする</label>
       <label class="chk"><input type="checkbox" id="pCast"> 登場人物表のページを付ける</label>
       <label class="chk"><input type="checkbox" id="pSyn"> あらすじのページを付ける</label>
-      <div class="small">表紙・登場人物表・あらすじの順に本文の前に置き、それぞれ新しいページから始めます。ページ番号は付けず、本文の枚数にも数えません。登場人物表やあらすじを外すと、その内容も消えます（「元に戻す」で復元できます）。</div>
+      <div class="small">表紙・登場人物表・あらすじの順に本文の前に置き、それぞれ新しいページから始めます。ページ番号は付けず、本文の枚数にも数えません。登場人物表は、人物パネルの「人物一覧」と連動します。どちらで書いても、もう一方に同じ内容が入ります。あらすじを外すと、その内容も消えます（「元に戻す」で復元できます）。登場人物表を外しても、その内容は人物一覧に残ります。</div>
     </div>
     <div class="pgroup" id="syncGroup">
       <h3>同期（MacとiPadの間）</h3>
@@ -509,7 +510,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 0.89</div>
+    <div class="small">Version 0.90</div>
   </div>
 </div>
 <div class="scrim" id="histPanel" hidden>
@@ -761,7 +762,7 @@ function setCover(on,quiet){
 function setDoc(o){
   curId=o.id; title=o.t||''; doc=[...(o.d||'')]; types=(o.y||[]).slice();
   pids=(o.pids||[]).slice(); pidSeq=pids.reduce((m,x)=>Math.max(m,x),0);
-  memos=Object.assign({},o.memos||{}); cover=!!o.cover; notes=Object.assign({},o.notes||{}); notesFor=null; mergeActs();
+  memos=Object.assign({},o.memos||{}); cover=!!o.cover; notes=Object.assign({},o.notes||{}); notesFor=null; castSyncFor=null; mergeActs();
   caret=Math.max(0,Math.min(o.c|0,doc.length)); fixTypes(); titleIn.value=title;
   migrateCover();
   undo=[]; redo=[]; lastKind=''; anchor=null; memoPid=undefined;
@@ -1231,7 +1232,7 @@ function render(){
     const pn=p*PER>=L.mainCol?String(p-L.mainCol/PER+1):'';
     if(pages[p].pnoText!==pn){ pages[p].pno.textContent=pn; pages[p].pnoText=pn; }
   }
-  renderCover(); updPageNav();
+  renderCover(); updPageNav(); syncCastBox();
   if(changed){ changed=false; markDirty(); }
   if(tab==='find') computeHits();
   updateStats(); placeCaret(); drawSel(); drawHits(); runLint(); saveCache(); updateSave(); updatePanels();
@@ -1413,6 +1414,7 @@ function updatePeople(items){
 }
 /* 原稿全体のメモ：入力のたびに保存（同期の対象） */
 document.querySelectorAll('.nbox textarea').forEach(el=>el.addEventListener('input',()=>{
+  if(el.id==='nt-cast'&&castFromBox(el.value)){ markDirty(); castTyping=true; try{ render(); }finally{ castTyping=false; } return; }
   const k=el.dataset.key; if(el.value) notes[k]=el.value; else delete notes[k];
   markDirty(); saveCache();
 }));
@@ -1671,7 +1673,7 @@ document.addEventListener('keydown',e=>{
 function paraAt(pos){ let n=0; for(let k=0;k<pos;k++) if(doc[k]==='\n') n++; return n; }
 function snapshot(kind){
   const now=Date.now();
-  if(!(kind==='type'&&lastKind==='type'&&now-lastT<1200)){
+  if(!((kind==='type'||kind==='cast')&&lastKind===kind&&now-lastT<1200)){
     undo.push({d:doc.join(''),y:types.slice(),p:pids.slice(),c:caret}); if(undo.length>300) undo.shift();
   }
   lastKind=kind; lastT=now; redo=[]; changed=true;
@@ -1773,8 +1775,10 @@ function setFront(kind,on){
     /* 登場人物表は先頭、あらすじは登場人物表のあと（本文の前）に入れる */
     const c0=F.cv?F.cv[1]:0, q=kind==='cast'?c0:(F.cast?F.cast[1]:c0), at=paraStart(q);
     snapshot('struct'); lastKind='';
-    const ins=[...head,'\n','\n'];
-    doc=doc.slice(0,at).concat(ins,doc.slice(at)); types.splice(q,0,ht,kind); pids.splice(q,0,newPid(),newPid());
+    /* 登場人物表には、人物一覧に書いてある人物を入れる */
+    const cl=kind==='cast'?(notes.cast||'').replace(/\r\n?/g,'\n').replace(/\n+$/,'').split('\n'):[''];
+    const ins=[...head,'\n',...cl.join('\n'),'\n'];
+    doc=doc.slice(0,at).concat(ins,doc.slice(at)); types.splice(q,0,ht,...Array(cl.length).fill(kind)); pids.splice(q,0,newPid(),...Array.from({length:cl.length},newPid));
     caret=at+head.length+1; anchor=null;
     render(); showCaretPage(); toast(name+'のページを追加しました');
   } else if(!on&&cur){
@@ -2190,7 +2194,7 @@ const HIST_DEV=DEVICE, HIST_CUR=()=>Object.assign(editorRec(),{sample:!!(recs.ge
    原稿を開いたとき・別の端末の変更を受け取る前・書いている途中（30分ごと）に、原稿の全体を自動で残す。
    残すのは直近の5件と、それより前は30日分を1日1件。「この版に戻す」では、戻す前の状態も版として残してから置き換える */
 const HIST_KEEP=5, HIST_DAYS=30, HIST_EVERY=30*60*1000;
-const HIST_WHY={open:'開いたとき',remote:'別の端末の変更を受け取る前',auto:'書いている途中',deleted:'別の端末で削除される前',before:'以前の版に戻す前'};
+const HIST_WHY={open:'開いたとき',remote:'別の端末の変更を受け取る前',auto:'書いている途中',deleted:'別の端末で削除される前',before:'以前の版に戻す前',castsync:'人物一覧を登場人物表に合わせる前'};
 let hdb=null, hLastAt=0, hLastVer=-1, histDocId=null, histSel=null;
 function histOpen(){
   if(hdb) return Promise.resolve(hdb);
@@ -2302,6 +2306,44 @@ $('histList').addEventListener('click',e=>{
   const k=Number(b.dataset.k); histSel=histSel===k?null:k; renderHist();
 });
 $('histDead').addEventListener('click',e=>{ const b=e.target.closest('[data-doc]'); if(!b) return; histDocId=b.dataset.doc; histSel=null; renderHist(); });
+/* 人物一覧と登場人物表の連動：登場人物表のページがある原稿では、人物一覧の欄に登場人物表の中身をそのまま映し、
+   欄で書き直したら登場人物表のマスを書き換える（中身は登場人物表の1つだけ。1行が登場人物表の1行に対応する） */
+let castSyncFor=null, castTyping=false;
+function castRange(){
+  const F=fronts(); if(!F.cast) return null;
+  const a=F.cast[0]+1, b=F.cast[1];
+  const from=paraStart(a), to=b<types.length?paraStart(b)-1:doc.length;
+  return {a,b,from,to};
+}
+function castText(){ const r=castRange(); return r?doc.slice(r.from,r.to).join(''):null; }
+function syncCastBox(){
+  const el=$('nt-cast'); if(!el) return;
+  const t=castText(), lk=$('castLink'); if(lk) lk.hidden=t==null;
+  if(t==null){ castSyncFor=curId; return; }
+  if(castSyncFor!==curId){
+    castSyncFor=curId;
+    /* 開いたときに食い違っていたら、登場人物表に合わせる（それまでの人物一覧は「以前の版」に残す） */
+    if((notes.cast||'')!==t&&(notes.cast||'').trim()){ histSave(HIST_CUR(),'castsync'); if(t) notes.cast=t; else delete notes.cast; markDirty(); }
+  }
+  if(t) notes.cast=t; else delete notes.cast;
+  /* 欄で入力している最中は書き換えない（元に戻す・マス目での入力のときは、欄にも反映する） */
+  if(el.value!==t&&!castTyping){ const f=document.activeElement===el, ss=el.selectionStart; el.value=t; if(f){ const q=Math.min(ss,t.length); el.setSelectionRange(q,q); } }
+}
+function castFromBox(v){
+  const r=castRange(); if(!r) return false;
+  const lines=v.replace(/\r\n?/g,'\n').split('\n'), n=lines.length, old=r.b-r.a;
+  const ins=[...lines.join('\n')];
+  if(doc.slice(r.from,r.to).join('')===lines.join('\n')) return true;
+  snapshot('cast');
+  const delta=ins.length-(r.to-r.from);
+  doc=doc.slice(0,r.from).concat(ins,doc.slice(r.to));
+  types.splice(r.a,old,...Array(n).fill('cast'));
+  const keep=pids.slice(r.a,r.a+Math.min(n,old));
+  pids.splice(r.a,old,...keep,...Array.from({length:Math.max(0,n-old)},newPid));
+  if(caret>=r.to) caret+=delta; else if(caret>r.from) caret=Math.min(caret,r.from+ins.length);
+  anchor=null;
+  return true;
+}
 /* ページ送り：いま画面に出ているページから、1ページ・10ページ単位で前後のページへ移る（カーソルは動かさない） */
 function curPageIdx(){
   const barB=document.querySelector('.bar').getBoundingClientRect().bottom;
