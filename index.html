@@ -89,8 +89,8 @@ button.solid{background:var(--accent);border-color:var(--accent);color:var(--pap
 .tools button:disabled,.panel button:disabled{opacity:.38;cursor:default}
 button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .sep{flex:0 0 1px;align-self:stretch;background:var(--edge);margin:6px 4px}
-.seg{display:flex;flex:0 0 auto;border:1px solid var(--rule);border-radius:7px;overflow:hidden}
-.tools .seg button{border:0;border-radius:0;border-left:1px solid var(--rule);min-width:68px}
+.seg{display:flex;flex:0 0 auto;border:1px solid var(--edge);border-radius:7px;overflow:hidden}
+.tools .seg button{border:0;border-radius:0;border-left:1px solid var(--edge);min-width:68px}
 .tools .seg button:first-child{border-left:0}
 .tools .seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
 
@@ -108,8 +108,8 @@ main{flex:1 1 auto;min-width:0;padding-left:max(16px,env(safe-area-inset-left,0p
 @supports (height:100dvh){#outline{height:calc(100dvh - var(--barh,56px) - env(safe-area-inset-top,0px))}}
 #outline + main{padding-left:16px}
 #outline button{font:inherit;color:var(--ink);cursor:pointer;touch-action:manipulation}
-.tabs{flex:0 0 auto;display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--rule);border-radius:7px;overflow:hidden}
-.tabs button{border:0;border-left:1px solid var(--rule);background:var(--paper);min-height:34px;font-size:13px!important;font-weight:400}
+.tabs{flex:0 0 auto;display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--edge);border-radius:7px;overflow:hidden}
+.tabs button{border:0;border-left:1px solid var(--edge);background:var(--paper);min-height:34px;font-size:13px!important;font-weight:400}
 .tabs button:first-child{border-left:0}
 .tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper)!important}
 .tab{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
@@ -499,7 +499,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 0.85</div>
+    <div class="small">Version 0.86</div>
   </div>
 </div>
 <div class="scrim" id="lookPanel" hidden>
