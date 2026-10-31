@@ -227,6 +227,11 @@ html.focus .bar,html.focus #outline{display:none}
 #bFocusOff:hover{opacity:1}
 #bFocusOff svg{width:18px;height:18px}
 html.focus #bFocusOff{display:inline-flex}
+/* iPadOS 26 以降のホーム画面のアプリでは、画面の上端に固定された無地の帯がないと、上端の内容がぼかされる。
+   集中モードではツールバーを隠すので、代わりに上端へ帯を置く（背景の色は読み取らせるが、文字がないので何も描かれない） */
+#edgeBand{display:none;position:fixed;top:0;left:0;right:0;height:12px;z-index:2147483647;pointer-events:none;
+  background-color:var(--desk);-webkit-background-clip:text;background-clip:text;color:transparent}
+html.focus #edgeBand{display:block}
 /* 柱番号：柱の「○」の上の余白に、柱一覧と同じ番号を表示する */
 .hno{position:absolute;width:var(--cell);right:calc(var(--padx,var(--pad)) + var(--c)*var(--step));top:calc(var(--pad) - var(--cell)*.78);
   text-align:center;font-family:var(--f-ui);font-size:max(9px,calc(var(--cell)*.38));line-height:1;color:var(--ink);font-variant-numeric:tabular-nums;pointer-events:none;white-space:nowrap}
@@ -475,6 +480,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
 </main>
 </div>
 
+<div id="edgeBand" aria-hidden="true"></div>
 <button id="bFocusOff" type="button" aria-label="集中モードを終える" title="集中モードを終える"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4"/><path d="M15 4v5h5"/><path d="M9 20v-5H4"/><path d="M15 20v-5h5"/></svg></button>
 <div class="scrim" id="docsPanel" hidden>
   <div class="panel" role="dialog" aria-labelledby="docsTitle">
@@ -547,7 +553,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 0.97</div>
+    <div class="small">Version 0.98</div>
   </div>
 </div>
 <div class="scrim" id="histPanel" hidden>
