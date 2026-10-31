@@ -281,6 +281,16 @@ html.ipad #ta.composing{background:var(--paper);color:var(--ink)}
 .pgroup{display:flex;flex-direction:column;gap:8px}
 .pgroup h3{margin:0;font-size:12px;letter-spacing:.08em;color:var(--muted);font-weight:700}
 .pbtns{display:flex;flex-wrap:wrap;gap:8px}
+.panel.wide{width:min(860px,100%)}
+#cmpBody{display:flex;flex-direction:column;gap:12px}
+#cmpBody .hunk{border:1px solid var(--edge);border-radius:8px;overflow:hidden}
+#cmpBody .hh{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 10px;background:var(--desk);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+#cmpBody .hh button{min-height:28px;padding:0 10px}
+#cmpBody .cl{padding:4px 12px;font-family:var(--f-text);font-size:14px;line-height:1.75;white-space:pre-wrap;word-break:break-all}
+#cmpBody .cl.eq{color:var(--muted)}
+#cmpPanel ins{text-decoration:underline;text-decoration-color:#2E8B57;text-decoration-thickness:2px;background:rgba(46,139,87,.16);color:var(--ink)}
+#cmpPanel del{text-decoration:line-through;text-decoration-color:#C8281E;background:rgba(200,40,30,.14);color:var(--ink)}
+.cmpsum{font-size:13px;color:var(--ink)}
 #histList,#histDead{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--edge);border-radius:8px;overflow:hidden}
 #histList li+li,#histDead li+li{border-top:1px solid var(--edge)}
 #histList button[data-k],#histDead button{width:100%;border:0;border-radius:0;min-height:52px;padding:8px 14px;text-align:left;display:flex;flex-direction:column;gap:2px;background:var(--paper)}
@@ -537,7 +547,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 0.96</div>
+    <div class="small">Version 0.97</div>
   </div>
 </div>
 <div class="scrim" id="histPanel" hidden>
@@ -553,6 +563,17 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <h3>削除された原稿</h3>
       <ul id="histDead"></ul>
     </div>
+  </div>
+</div>
+<div class="scrim" id="cmpPanel" hidden>
+  <div class="panel wide" role="dialog" aria-labelledby="cmpTitle">
+    <div class="phead"><h2 id="cmpTitle">版の比較</h2><button id="cmpClose" type="button">閉じる</button></div>
+    <div class="pgroup">
+      <h3 id="cmpHead"></h3>
+      <div class="small cmpsum" id="cmpSum"></div>
+      <div class="small"><ins>緑の下線</ins>は今の原稿で増えた部分、<del>赤の取り消し線</del>は今の原稿で消えた部分です。「この場所へ」を押すと、今の原稿のその箇所に移ります。</div>
+    </div>
+    <div id="cmpBody"></div>
   </div>
 </div>
 <div class="scrim" id="lookPanel" hidden>
@@ -2309,7 +2330,7 @@ async function renderHist(){
     const dd=now==null?'':x.chars===now?'・今と同じ字数':x.chars>now?'・今より'+(x.chars-now).toLocaleString('ja-JP')+'字多い':'・今より'+(now-x.chars).toLocaleString('ja-JP')+'字少ない';
     const sel=histSel===x.k, pv=esc((x.d||'').replace(/\n+/g,'／').slice(0,200));
     return `<li class="${sel?'sel':''}"><button type="button" data-k="${x.k}"><span class="t">${histWhen(x.at)}</span><span class="m">${HIST_WHY[x.why]||''}（${esc(x.dev||'')}）・${x.chars.toLocaleString('ja-JP')}字${dd}</span></button>`+
-      (sel?`<div class="hdet"><div class="hprev">${pv||'（本文なし）'}</div><div class="pbtns"><button type="button" class="solid" data-restore="${x.k}">この版に戻す</button></div></div>`:'')+'</li>';
+      (sel?`<div class="hdet"><div class="hprev">${pv||'（本文なし）'}</div><div class="pbtns">${isCur?`<button type="button" data-cmp="${x.k}">今の原稿と比べる</button>`:''}<button type="button" class="solid" data-restore="${x.k}">この版に戻す</button></div></div>`:'')+'</li>';
   }).join('');
   const live=HIST_LIVE(), dead=new Map();
   all.forEach(x=>{ if(!live.has(x.doc)){ const o=dead.get(x.doc); if(!o||o.at<x.at) dead.set(x.doc,x); } });
@@ -2340,6 +2361,7 @@ $('hBack').addEventListener('click',()=>{ histDocId=curId; histSel=null; renderH
 $('histPanel').addEventListener('click',e=>{ if(e.target===$('histPanel')) $('histPanel').hidden=true; });
 $('histList').addEventListener('click',e=>{
   const rb=e.target.closest('[data-restore]'); if(rb){ histRestore(Number(rb.dataset.restore)); return; }
+  const cb=e.target.closest('[data-cmp]'); if(cb){ openCompare(Number(cb.dataset.cmp)); return; }
   const b=e.target.closest('[data-k]'); if(!b) return;
   const k=Number(b.dataset.k); histSel=histSel===k?null:k; renderHist();
 });
@@ -2444,6 +2466,70 @@ $('bFocus').addEventListener('pointerdown',e=>e.preventDefault());
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.documentElement.classList.contains('focus')&&[...document.querySelectorAll('.scrim')].every(s=>s.hidden)) setFocusMode(false); });
 /* 柱番号（この原稿） */
 $('pHnum').addEventListener('change',()=>{ if($('pHnum').checked) notes.hnum='1'; else delete notes.hnum; changed=true; markDirty(); render(); });
+/* 版どうしの比較：選んだ版と今の原稿を行ごとに比べ、変わった行は文字ごとに比べて、増えた部分と消えた部分を色分けして示す */
+function lcsOps(a,b,eq){
+  /* a と b の共通部分（最長共通部分列）を求め、同じ・消えた・増えたの並びを返す */
+  eq=eq||((x,y)=>x===y);
+  let s=0; while(s<a.length&&s<b.length&&eq(a[s],b[s])) s++;
+  let e=0; while(e<a.length-s&&e<b.length-s&&eq(a[a.length-1-e],b[b.length-1-e])) e++;
+  const A=a.slice(s,a.length-e), B=b.slice(s,b.length-e), n=A.length, m=B.length, ops=[];
+  for(let k=0;k<s;k++) ops.push(['=',k,k]);
+  if(n*m>6e6){ for(let i=0;i<n;i++) ops.push(['-',s+i,-1]); for(let j=0;j<m;j++) ops.push(['+',-1,s+j]); }   /* 大きすぎるときは、まとめて置き換わったものとして扱う */
+  else{
+    const W=m+1, dp=new Uint32Array((n+1)*W);
+    for(let i=n-1;i>=0;i--) for(let j=m-1;j>=0;j--) dp[i*W+j]=eq(A[i],B[j])?dp[(i+1)*W+j+1]+1:Math.max(dp[(i+1)*W+j],dp[i*W+j+1]);
+    let i=0,j=0;
+    while(i<n&&j<m){ if(eq(A[i],B[j])){ ops.push(['=',s+i,s+j]); i++; j++; } else if(dp[(i+1)*W+j]>=dp[i*W+j+1]){ ops.push(['-',s+i,-1]); i++; } else { ops.push(['+',-1,s+j]); j++; } }
+    while(i<n){ ops.push(['-',s+i,-1]); i++; } while(j<m){ ops.push(['+',-1,s+j]); j++; }
+  }
+  for(let k=0;k<e;k++) ops.push(['=',a.length-e+k,b.length-e+k]);
+  return ops;
+}
+function charDiffHtml(x,y){
+  const a=[...x], b=[...y], ops=lcsOps(a,b); let h='', run='', rt='';
+  const flush=()=>{ if(!run) return; h+=rt==='='?esc(run):rt==='-'?`<del>${esc(run)}</del>`:`<ins>${esc(run)}</ins>`; run=''; };
+  let add=0, del=0;
+  for(const [t,i,j] of ops){ if(t!==rt){ flush(); rt=t; } const ch=t==='+'?b[j]:a[i]; run+=ch; if(t==='+') add++; else if(t==='-') del++; }
+  flush(); return {h,add,del};
+}
+async function openCompare(k){
+  let x=null; try{ x=await htx('readonly',s=>s.get(k)); }catch(e){}
+  if(!x){ toast('この版を読み込めませんでした'); return; }
+  const A=(x.d||'').split('\n'), B=doc.join('').split('\n'), ops=lcsOps(A,B);
+  /* 変わった行のまとまり（前後1行を含む）を作る */
+  const hunks=[]; let cur=null;
+  ops.forEach((o,idx)=>{
+    if(o[0]==='='){ if(cur){ cur.tail.push(o); if(cur.tail.length>=1){ hunks.push(cur); cur=null; } } return; }
+    if(!cur){ cur={pre:idx>0&&ops[idx-1][0]==='='?[ops[idx-1]]:[],body:[],tail:[]}; }
+    cur.body.push(o);
+  });
+  if(cur) hunks.push(cur);
+  let addT=0, delT=0, html='';
+  for(const hk of hunks){
+    const firstB=(hk.body.find(o=>o[2]>=0)||hk.tail[0]||hk.pre[0]||[0,0,Math.max(0,B.length-1)])[2];
+    const at=paraStart(Math.min(firstB,types.length-1));
+    let rows=hk.pre.map(o=>`<div class="cl eq">${esc(B[o[2]])||'&nbsp;'}</div>`).join('');
+    /* 消えた行と増えた行を順に組にして、文字ごとに比べる */
+    const dels=hk.body.filter(o=>o[0]==='-').map(o=>A[o[1]]), adds=hk.body.filter(o=>o[0]==='+').map(o=>B[o[2]]);
+    const pair=Math.min(dels.length,adds.length);
+    for(let q=0;q<pair;q++){ const r=charDiffHtml(dels[q],adds[q]); addT+=r.add; delT+=r.del; rows+=`<div class="cl chg">${r.h||'&nbsp;'}</div>`; }
+    for(let q=pair;q<dels.length;q++){ delT+=[...dels[q]].length; rows+=`<div class="cl rm"><del>${esc(dels[q])||'（空の行）'}</del></div>`; }
+    for(let q=pair;q<adds.length;q++){ addT+=[...adds[q]].length; rows+=`<div class="cl ad"><ins>${esc(adds[q])||'（空の行）'}</ins></div>`; }
+    rows+=hk.tail.map(o=>`<div class="cl eq">${esc(B[o[2]])||'&nbsp;'}</div>`).join('');
+    html+=`<div class="hunk"><div class="hh"><span>${posLabel(colOf(at))}</span><button type="button" data-at="${at}">この場所へ</button></div>${rows}</div>`;
+  }
+  $('cmpHead').textContent=histWhen(x.at)+'の版 → 今の原稿';
+  $('cmpSum').innerHTML=hunks.length?`変わった箇所 ${hunks.length}か所　<ins>増えた ${addT.toLocaleString('ja-JP')}字</ins>　<del>消えた ${delT.toLocaleString('ja-JP')}字</del>`+((x.title||'')!==(title||'')?`<br>題名：<del>${esc(x.title||'（なし）')}</del> → <ins>${esc(title||'（なし）')}</ins>`:''):'本文は、この版と今の原稿で同じです。'+((x.title||'')!==(title||'')?`<br>題名：<del>${esc(x.title||'（なし）')}</del> → <ins>${esc(title||'（なし）')}</ins>`:'');
+  $('cmpBody').innerHTML=html;
+  $('cmpPanel').hidden=false; $('cmpBody').scrollTop=0;
+}
+$('cmpClose').addEventListener('click',()=>$('cmpPanel').hidden=true);
+$('cmpPanel').addEventListener('click',e=>{
+  if(e.target===$('cmpPanel')){ $('cmpPanel').hidden=true; return; }
+  const b=e.target.closest('button[data-at]'); if(!b) return;
+  $('cmpPanel').hidden=true; $('histPanel').hidden=true; $('docsPanel').hidden=true;
+  jumpTo(+b.dataset.at);
+});
 /* ページ送り：いま画面に出ているページから、1ページ・10ページ単位で前後のページへ移る（カーソルは動かさない） */
 function curPageIdx(){
   const barB=document.querySelector('.bar').getBoundingClientRect().bottom;
