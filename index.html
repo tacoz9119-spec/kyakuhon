@@ -261,6 +261,15 @@ html.ipad #ta.composing{background:var(--paper);color:var(--ink)}
 .pgroup{display:flex;flex-direction:column;gap:8px}
 .pgroup h3{margin:0;font-size:12px;letter-spacing:.08em;color:var(--muted);font-weight:700}
 .pbtns{display:flex;flex-wrap:wrap;gap:8px}
+#histList,#histDead{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--edge);border-radius:8px;overflow:hidden}
+#histList li+li,#histDead li+li{border-top:1px solid var(--edge)}
+#histList button[data-k],#histDead button{width:100%;border:0;border-radius:0;min-height:52px;padding:8px 14px;text-align:left;display:flex;flex-direction:column;gap:2px;background:var(--paper)}
+#histList .t,#histDead .t{font-size:15px;color:var(--ink);font-variant-numeric:tabular-nums}
+#histList .m,#histDead .m{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+#histList li.sel button[data-k]{background:var(--desk)}
+#histList .hdet{padding:10px 14px 12px;display:flex;flex-direction:column;gap:10px;background:var(--desk)}
+#histList .hprev{font-family:var(--f-text);font-size:14px;line-height:1.7;color:var(--ink);max-height:8.5em;overflow:hidden}
+#histList .hnone{padding:12px 14px}
 #docList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--edge);border-radius:8px;overflow:hidden}
 #docList li+li{border-top:1px solid var(--edge)}
 #docList button{width:100%;border:0;border-radius:0;min-height:56px;padding:10px 14px;text-align:left;display:grid;
@@ -482,6 +491,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       </div>
       <ul id="docList"></ul>
       <div class="pbtns">
+        <button id="pHist" type="button">以前の版</button>
         <button id="pDelete" type="button" class="danger">この原稿を削除</button>
         <span class="pbtns" id="pDelConfirm" hidden>
           <button id="pDelYes" type="button" class="solid">削除する</button>
@@ -499,7 +509,22 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 0.87</div>
+    <div class="small">Version 0.89</div>
+  </div>
+</div>
+<div class="scrim" id="histPanel" hidden>
+  <div class="panel" role="dialog" aria-labelledby="histTitle">
+    <div class="phead"><h2 id="histTitle">以前の版</h2><button id="hClose" type="button">閉じる</button></div>
+    <div class="pgroup">
+      <h3 id="histHead"></h3>
+      <div class="pbtns"><button id="hBack" type="button" hidden>この原稿の版を見る</button></div>
+      <ul id="histList"></ul>
+      <div class="small">この端末の中に、原稿を開いたとき・別の端末の変更を受け取る前・書いている途中（30分ごと）に自動で残します。残すのは直近の5件と、それより前は30日分を1日1件です。版を選んで「この版に戻す」を押すと、原稿がその版の内容に置き換わります。戻す前の状態も版として残るので、元に戻したくなったときは、その版を選び直してください。</div>
+    </div>
+    <div class="pgroup" id="histDeadG" hidden>
+      <h3>削除された原稿</h3>
+      <ul id="histDead"></ul>
+    </div>
   </div>
 </div>
 <div class="scrim" id="lookPanel" hidden>
@@ -860,6 +885,7 @@ async function applyRemote(id,R){
   if(R.deleted){
     if(!L) return;
     if(L.dirty&&!L.deleted){ L.remoteAt=R.updatedAt; await idbPut(L); return; }   /* こちらで書き足していれば残す */
+    await histSave(L,'deleted');
     recs.delete(id); await idbDel(id);
     if(id===curId){ const next=liveList()[0]; if(next){ loadRec(next); render(); } else await newDoc(); toast('別の端末で削除された原稿を閉じました'); }
     return;
@@ -868,6 +894,7 @@ async function applyRemote(id,R){
   if(!L||(!L.dirty&&!editingHere)){
     const full=await fetchRemote(id,R);
     if(L&&L.deleted) return;
+    if(L){ await histSave(L,'remote'); histWarnCut(countChars([...(L.d||'')]),countChars([...(full.d||'')]),full.title); }
     recs.set(id,full); await idbPut(full);
     if(id===curId){ const c=caret; loadRec(full); caret=Math.min(c,doc.length); render(); toast('別の端末での変更を読み込みました'); }
     else{
@@ -880,6 +907,7 @@ async function applyRemote(id,R){
   /* 両方の端末で書き換えられていた：サーバーにある版（もう一方の端末の版）を元の原稿として残し、
      この端末で書き換えた版は「（iPadで書いた版）」などの別の原稿にする。もう一方の端末の原稿は上書きしない */
   if(id===curId&&localPending) await saveLocalNow();
+  await histSave(recs.get(id)||L,'remote');
   const mine=Object.assign({},recs.get(id)||L), copyId=newId();
   Object.assign(mine,{id:copyId,title:(mine.title||'無題')+'（'+DEVICE()+'で書いた版）',dirty:true,remoteAt:0,rparts:0,updatedAt:Date.now(),deleted:false,sample:false});
   recs.set(copyId,mine); await idbPut(mine);
@@ -942,11 +970,12 @@ async function openDoc(id){
   await saveLocalNow();
   const r=recs.get(id); if(!r) return;
   loadRec(r); render(); window.scrollTo(0,0);
+  histSave(HIST_CUR(),'open'); histMark();
 }
 async function newDoc(o){
   await saveLocalNow();
   const id=newId();
-  setDoc({id,t:(o&&o.t)||'',d:(o&&o.d)||'',y:(o&&o.y)||['hashira'],c:0,pids:o&&o.pids,memos:o&&o.memos,cover:o&&o.cover});
+  setDoc({id,t:(o&&o.t)||'',d:(o&&o.d)||'',y:(o&&o.y)||['hashira'],c:0,pids:o&&o.pids,memos:o&&o.memos,cover:o&&o.cover,notes:o&&o.notes});
   recs.set(id,Object.assign(editorRec(),{updatedAt:Date.now(),dirty:true,remoteAt:0,rparts:0,deleted:false}));
   kvSet('current',id).catch(()=>{});
   markDirty(); render(); window.scrollTo(0,0);
@@ -2083,7 +2112,7 @@ $('bUndo').addEventListener('click',()=>{ restore(undo,redo); refocus(); });
 $('bRedo').addEventListener('click',()=>{ restore(redo,undo); refocus(); });
 
 let toastTimer=0;
-function toast(msg){ const t=$('toast'); t.textContent=msg; t.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.hidden=true,2600); }
+function toast(msg,ms){ const t=$('toast'); t.textContent=msg; t.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.hidden=true,ms||2600); }
 $('fbClose').addEventListener('click',()=>$('fallback').hidden=true);
 titleIn.addEventListener('input',()=>{ title=titleIn.value; markDirty(); saveCache(); renderCover(); });
 
@@ -2156,6 +2185,123 @@ $('rbRead').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.isComposing&&
 $('rbClose').addEventListener('click',closeRuby);
 
 $('rubyPanel').addEventListener('click',e=>{ if(e.target===$('rubyPanel')) closeRuby(); });
+const HIST_DEV=DEVICE, HIST_CUR=()=>Object.assign(editorRec(),{sample:!!(recs.get(curId)||{}).sample}), HIST_FLUSH=()=>saveLocalNow(), HIST_LIVE=()=>new Set(liveList().map(r=>r.id).concat(curId?[curId]:[]));
+/* ---------- 以前の版（この端末の中だけに残す） ----------
+   原稿を開いたとき・別の端末の変更を受け取る前・書いている途中（30分ごと）に、原稿の全体を自動で残す。
+   残すのは直近の5件と、それより前は30日分を1日1件。「この版に戻す」では、戻す前の状態も版として残してから置き換える */
+const HIST_KEEP=5, HIST_DAYS=30, HIST_EVERY=30*60*1000;
+const HIST_WHY={open:'開いたとき',remote:'別の端末の変更を受け取る前',auto:'書いている途中',deleted:'別の端末で削除される前',before:'以前の版に戻す前'};
+let hdb=null, hLastAt=0, hLastVer=-1, histDocId=null, histSel=null;
+function histOpen(){
+  if(hdb) return Promise.resolve(hdb);
+  return new Promise((res,rej)=>{
+    let r; try{ r=indexedDB.open('genko-history',1); }catch(e){ rej(e); return; }
+    r.onupgradeneeded=()=>{ const s=r.result.createObjectStore('snaps',{keyPath:'k',autoIncrement:true}); s.createIndex('doc','doc'); };
+    r.onsuccess=()=>{ hdb=r.result; res(hdb); }; r.onerror=()=>rej(r.error);
+  });
+}
+function htx(rw,fn){
+  return histOpen().then(db=>new Promise((res,rej)=>{
+    const t=db.transaction('snaps',rw), req=fn(t.objectStore('snaps')); let out;
+    if(req) req.onsuccess=()=>{ out=req.result; };
+    t.oncomplete=()=>res(out); t.onerror=()=>rej(t.error); t.onabort=()=>rej(t.error);
+  }));
+}
+const histOf=id=>htx('readonly',s=>s.index('doc').getAll(id)).then(a=>(a||[]).sort((x,y)=>y.at-x.at));
+function histHash(r){
+  const s=(r.title||'')+'\u0001'+(r.d||'')+'\u0001'+(r.y||'')+'\u0001'+(r.cv?1:0)+'\u0001'+JSON.stringify(r.n||{})+JSON.stringify(r.m||{});
+  let h=2166136261; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0).toString(36)+':'+s.length;
+}
+function histMark(){ hLastAt=Date.now(); hLastVer=editVersion; }
+async function histSave(r,why){
+  if(!r||!r.id||r.sample) return;
+  try{
+    const h=histHash(r), list=await histOf(r.id);
+    if(list[0]&&list[0].h===h) return;   /* 直前の版と同じ内容なら残さない */
+    await htx('readwrite',s=>s.add({doc:r.id,at:Date.now(),why,dev:HIST_DEV(),h,title:r.title||'',d:r.d||'',y:r.y||'',p:r.p||'',m:r.m||{},n:r.n||{},cv:!!r.cv,chars:countChars([...(r.d||'')])}));
+    await histPrune(r.id);
+  }catch(e){}
+}
+const dayKey=t=>{ const d=new Date(t); return d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate(); };
+async function histPrune(id){
+  const list=await histOf(id), now=Date.now(), keep=new Set(), days=new Set();
+  list.forEach((x,i)=>{
+    if(i<HIST_KEEP){ keep.add(x.k); return; }
+    if(now-x.at>HIST_DAYS*864e5) return;
+    const dk=dayKey(x.at); if(!days.has(dk)){ days.add(dk); keep.add(x.k); }   /* その日の最後の版だけを残す */
+  });
+  const del=list.filter(x=>!keep.has(x.k));
+  if(del.length) await htx('readwrite',s=>{ del.forEach(x=>s.delete(x.k)); });
+}
+/* 削除された原稿の版は、30日たったら消す */
+async function histCleanup(){
+  try{
+    const live=HIST_LIVE(), all=await htx('readonly',s=>s.getAll()), now=Date.now();
+    const del=(all||[]).filter(x=>!live.has(x.doc)&&now-x.at>HIST_DAYS*864e5);
+    if(del.length) await htx('readwrite',s=>{ del.forEach(x=>s.delete(x.k)); });
+  }catch(e){}
+}
+/* 書いている途中：30分ごとに、変更があれば残す */
+setInterval(async()=>{
+  if(!curId||Date.now()-hLastAt<HIST_EVERY||editVersion===hLastVer) return;
+  histMark(); await HIST_FLUSH(); histSave(HIST_CUR(),'auto');
+},60*1000);
+/* 別の端末から届いた変更で、原稿が大きく減ったときに知らせる */
+function histWarnCut(before,after,name){
+  if(before>=200&&after<before*0.7) toast('別の端末の変更で「'+(name||'無題')+'」の文字数が '+before.toLocaleString('ja-JP')+'字から '+after.toLocaleString('ja-JP')+'字に減りました。誤りなら「その他」→「以前の版」から戻せます',9000);
+}
+function histWhen(t){
+  const d=new Date(t), hm=d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
+  const today=dayKey(Date.now()), yest=dayKey(Date.now()-864e5);
+  return (dayKey(t)===today?'今日':dayKey(t)===yest?'昨日':(d.getMonth()+1)+'月'+d.getDate()+'日')+' '+hm;
+}
+async function openHist(id){ histDocId=id||curId; histSel=null; $('histPanel').hidden=false; await renderHist(); }
+async function renderHist(){
+  const ul=$('histList');
+  let all=[]; try{ all=(await htx('readonly',s=>s.getAll()))||[]; }catch(e){ ul.innerHTML='<li class="small hnone">以前の版を読み込めませんでした。</li>'; return; }
+  const mine=all.filter(x=>x.doc===histDocId).sort((a,b)=>b.at-a.at), isCur=histDocId===curId, now=isCur?countChars(doc):null;
+  $('histHead').textContent=isCur?'この原稿「'+(title||'無題')+'」':'削除された原稿「'+((mine[0]&&mine[0].title)||'無題')+'」';
+  $('hBack').hidden=isCur;
+  if(!mine.length) ul.innerHTML='<li class="small hnone">まだ以前の版はありません。原稿を開いたときなどに、自動で残ります。</li>';
+  else ul.innerHTML=mine.map(x=>{
+    const dd=now==null?'':x.chars===now?'・今と同じ字数':x.chars>now?'・今より'+(x.chars-now).toLocaleString('ja-JP')+'字多い':'・今より'+(now-x.chars).toLocaleString('ja-JP')+'字少ない';
+    const sel=histSel===x.k, pv=esc((x.d||'').replace(/\n+/g,'／').slice(0,200));
+    return `<li class="${sel?'sel':''}"><button type="button" data-k="${x.k}"><span class="t">${histWhen(x.at)}</span><span class="m">${HIST_WHY[x.why]||''}（${esc(x.dev||'')}）・${x.chars.toLocaleString('ja-JP')}字${dd}</span></button>`+
+      (sel?`<div class="hdet"><div class="hprev">${pv||'（本文なし）'}</div><div class="pbtns"><button type="button" class="solid" data-restore="${x.k}">この版に戻す</button></div></div>`:'')+'</li>';
+  }).join('');
+  const live=HIST_LIVE(), dead=new Map();
+  all.forEach(x=>{ if(!live.has(x.doc)){ const o=dead.get(x.doc); if(!o||o.at<x.at) dead.set(x.doc,x); } });
+  $('histDeadG').hidden=!dead.size;
+  $('histDead').innerHTML=[...dead.values()].sort((a,b)=>b.at-a.at).map(x=>`<li><button type="button" data-doc="${esc(String(x.doc))}"><span class="t">${esc(x.title||'無題')}</span><span class="m">最後の版：${histWhen(x.at)}</span></button></li>`).join('');
+}
+async function histRestore(k){
+  let x=null; try{ x=await htx('readonly',s=>s.get(k)); }catch(e){}
+  if(!x){ toast('この版を読み込めませんでした'); return; }
+  const when=histWhen(x.at);
+  $('histPanel').hidden=true; $('docsPanel').hidden=true;
+  const o={t:x.title||'',d:x.d||'',y:decodeTypes(x.y),pids:decPids(x.p),memos:x.m||{},cover:!!x.cv,notes:x.n||{}};
+  if(x.doc===curId){
+    /* 今の原稿を、選んだ版で置き換える（置き換える前の状態は版として残す） */
+    await HIST_FLUSH(); await histSave(HIST_CUR(),'before');
+    setDoc(Object.assign({id:curId,c:0},o)); markDirty();
+    histMark(); render(); window.scrollTo(0,0);
+    toast(when+'の版に戻しました。戻す前の状態も「以前の版」に残しています',5000);
+  } else {
+    /* 削除された原稿：その版を原稿として作り直す */
+    await newDoc(o); histMark(); render(); window.scrollTo(0,0);
+    toast('削除された原稿を、'+when+'の版で作り直しました',5000);
+  }
+}
+$('pHist').addEventListener('click',()=>openHist(curId));
+$('hClose').addEventListener('click',()=>$('histPanel').hidden=true);
+$('hBack').addEventListener('click',()=>{ histDocId=curId; histSel=null; renderHist(); });
+$('histPanel').addEventListener('click',e=>{ if(e.target===$('histPanel')) $('histPanel').hidden=true; });
+$('histList').addEventListener('click',e=>{
+  const rb=e.target.closest('[data-restore]'); if(rb){ histRestore(Number(rb.dataset.restore)); return; }
+  const b=e.target.closest('[data-k]'); if(!b) return;
+  const k=Number(b.dataset.k); histSel=histSel===k?null:k; renderHist();
+});
+$('histDead').addEventListener('click',e=>{ const b=e.target.closest('[data-doc]'); if(!b) return; histDocId=b.dataset.doc; histSel=null; renderHist(); });
 /* ページ送り：いま画面に出ているページから、1ページ・10ページ単位で前後のページへ移る（カーソルは動かさない） */
 function curPageIdx(){
   const barB=document.querySelector('.bar').getBoundingClientRect().bottom;
@@ -2477,6 +2623,7 @@ async function boot(){
     recs.set(r.id,r); idbPut(r).catch(()=>{});
   }
   loadRec(r); G=geo(); setTab(tab); render(); resize(); updateSave();
+  histSave(HIST_CUR(),'open'); histMark(); histCleanup();
   initFirebase();
 }
 boot();
