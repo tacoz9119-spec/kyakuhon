@@ -537,7 +537,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 0.95</div>
+    <div class="small">Version 0.96</div>
   </div>
 </div>
 <div class="scrim" id="histPanel" hidden>
@@ -2429,9 +2429,13 @@ function moveScene(k,t){
 }
 /* 集中モード（この端末に記憶） */
 function setFocusMode(on){
+  /* 切り替える前に画面に出ていたページを、切り替えたあとも表示する（カーソルのページには飛ばない） */
+  const k=pages.length?curPageIdx():0;
   document.documentElement.classList.toggle('focus',on);
   try{ localStorage.setItem('genko-focus',on?'1':''); }catch(e){}
-  resize(); render(); showCaretPage(); ta.focus({preventScroll:true});
+  resize(); render();
+  if(pages[k]){ const barB=document.querySelector('.bar').getBoundingClientRect().bottom; window.scrollBy(0,pages[k].el.getBoundingClientRect().top-barB-10); }
+  updPageNav(); ta.focus({preventScroll:true});
 }
 $('bFocus').addEventListener('click',()=>setFocusMode(true));
 $('bFocusOff').addEventListener('click',()=>setFocusMode(false));
