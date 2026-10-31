@@ -220,18 +220,17 @@ html.nolint #lint{display:none}
   font-size:max(11px,calc(var(--cell)*.4));color:var(--muted);font-variant-numeric:tabular-nums}
 
 /* 集中モード：ツールバーと左パネルを隠し、原稿だけを表示する */
-html.focus .bar,html.focus #outline{display:none}
-#bFocusOff{display:none;position:fixed;z-index:30;top:calc(env(safe-area-inset-top,0px) + 10px);right:calc(env(safe-area-inset-right,0px) + 12px);
+/* ツールバーは消さずに、中身だけを隠して細い無地の帯として残す（iPadOS 26 で、上端の帯が消えると画面の上端がぼかされるため） */
+html.focus #outline{display:none}
+html.focus .bar{padding-block:0;height:14px;box-sizing:border-box;overflow:hidden}
+html.focus .bar>*{visibility:hidden}
+#bFocusOff{display:none;position:fixed;z-index:30;top:calc(env(safe-area-inset-top,0px) + 22px);right:calc(env(safe-area-inset-right,0px) + 12px);
   width:38px;height:38px;align-items:center;justify-content:center;padding:0;border:1px solid var(--edge);border-radius:8px;
   background:var(--paper);color:var(--ink);opacity:.55;cursor:pointer;touch-action:manipulation}
 #bFocusOff:hover{opacity:1}
 #bFocusOff svg{width:18px;height:18px}
 html.focus #bFocusOff{display:inline-flex}
-/* iPadOS 26 以降のホーム画面のアプリでは、画面の最上部に無地の帯がないと、上端に来た内容がぼかされる。
-   集中モードではツールバーを隠すので、iPadでは代わりに最上部へ無地の帯を置き、原稿はその下から表示する */
-#edgeBand{display:none;position:fixed;top:0;left:0;right:0;height:max(16px,env(safe-area-inset-top,0px));z-index:40;pointer-events:none;background:var(--desk)}
-html.focus.ipad #edgeBand{display:block}
-html.focus.ipad .layout{padding-top:16px}
+
 html.focus.ipad #bFocusOff{top:calc(max(16px,env(safe-area-inset-top,0px)) + 8px)}
 /* 柱番号：柱の「○」の上の余白に、柱一覧と同じ番号を表示する */
 .hno{position:absolute;width:var(--cell);right:calc(var(--padx,var(--pad)) + var(--c)*var(--step));top:calc(var(--pad) - var(--cell)*.78);
@@ -481,7 +480,6 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
 </main>
 </div>
 
-<div id="edgeBand" aria-hidden="true"></div>
 <button id="bFocusOff" type="button" aria-label="集中モードを終える" title="集中モードを終える"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4"/><path d="M15 4v5h5"/><path d="M9 20v-5H4"/><path d="M15 20v-5h5"/></svg></button>
 <div class="scrim" id="docsPanel" hidden>
   <div class="panel" role="dialog" aria-labelledby="docsTitle">
@@ -554,7 +552,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 0.99</div>
+    <div class="small">Version 1.00</div>
   </div>
 </div>
 <div class="scrim" id="histPanel" hidden>
