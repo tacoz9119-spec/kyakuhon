@@ -233,8 +233,14 @@ html.focus:not(.ipad) .bar{display:none}
 #bFocusOff svg{width:18px;height:18px}
 html.focus #bFocusOff{display:inline-flex}
 html.focus.ipad #bFocusOff{top:calc(env(safe-area-inset-top,0px) + 22px)}
+/* iPadのホーム画面のアプリでは、画面の最上部（時計などが出る帯）をクリック・タップすると、iPadが原稿をいちばん上までスクロールする。
+   ツールバーのボタンの上の端がこの帯にかかっていたため、ボタンを押したつもりでも上に飛ぶことがあった。ボタンをこの帯より下に下げる */
+@media (display-mode: standalone){
+  html.ipad .bar{padding-top:calc(8px + max(0px, 26px - env(safe-area-inset-top,0px)))}
+  html.ipad.focus .bar{height:calc(14px + max(0px, 26px - env(safe-area-inset-top,0px)))}
+  html.ipad.focus #bFocusOff{top:calc(max(26px, env(safe-area-inset-top,0px)) + 22px)}
+}
 
-html.focus.ipad #bFocusOff{top:calc(max(16px,env(safe-area-inset-top,0px)) + 8px)}
 /* 柱番号：柱の「○」の上の余白に、柱一覧と同じ番号を表示する */
 .hno{position:absolute;width:var(--cell);right:calc(var(--padx,var(--pad)) + var(--c)*var(--step));top:calc(var(--pad) - var(--cell)*.78);
   text-align:center;font-family:var(--f-ui);font-size:max(9px,calc(var(--cell)*.38));line-height:1;color:var(--ink);font-variant-numeric:tabular-nums;pointer-events:none;white-space:nowrap}
@@ -380,43 +386,6 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
 <script>if('serviceWorker' in navigator){ addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{})); }</script>
 </head>
 <body>
-<script>
-/* 調査用の動作記録（一時的なもの）：画面が大きく飛んだときの直前の操作を記録する */
-(function(){
-  const L=[], t0=Date.now(); let lastY=window.scrollY, run=null, runT=0, wheelOn=false, wheelT=0;
-  const tag=e=>{ if(!e) return '-'; const el=e.nodeType===1?e:e.parentElement; if(!el) return '?'; return (el.id?'#'+el.id:el.tagName.toLowerCase()+(el.className&&typeof el.className==='string'?'.'+el.className.split(' ')[0]:''))+(el.closest&&el.closest('.bar')?'@bar':el.closest&&el.closest('#outline')?'@side':''); };
-  const log=s=>{ L.push(((Date.now()-t0)/1000).toFixed(2)+' '+s); if(L.length>120) L.shift(); };
-  const st=()=>{ try{ return (new Error().stack||'').split('\n').slice(2,5).map(x=>x.trim().replace(/https?:\/\/[^ )]*\//,'')).join(' < '); }catch(e){ return ''; } };
-  ['scrollTo','scrollBy'].forEach(m=>{ const o=window[m].bind(window); window[m]=function(...a){ log(m+'('+JSON.stringify(a).slice(0,40)+') '+st()); return o(...a); }; });
-  const osv=Element.prototype.scrollIntoView; Element.prototype.scrollIntoView=function(...a){ log('scrollIntoView '+tag(this)+' '+st()); return osv.apply(this,a); };
-  const ofo=HTMLElement.prototype.focus; HTMLElement.prototype.focus=function(...a){ log('focus() '+tag(this)+' '+JSON.stringify(a[0]||{})+' '+st()); return ofo.apply(this,a); };
-  ['pointerdown','mousedown','click','pointerup'].forEach(ev=>document.addEventListener(ev,e=>log(ev+' '+(e.pointerType||'')+' '+tag(e.target)+' y='+Math.round(e.clientY||0)+(e.defaultPrevented?' (prevented)':'')),true));
-  document.addEventListener('wheel',e=>{ if(!wheelOn){ wheelOn=true; log('wheel 開始 dy='+Math.round(e.deltaY)); } clearTimeout(wheelT); wheelT=setTimeout(()=>{ wheelOn=false; log('wheel 終了'); },300); },{passive:true,capture:true});
-  ['touchstart','touchend'].forEach(ev=>document.addEventListener(ev,e=>log(ev+' '+tag(e.target)+' y='+Math.round((e.changedTouches[0]||{}).clientY||0)),{passive:true,capture:true}));
-  document.addEventListener('focusin',e=>log('focusin '+tag(e.target)),true);
-  document.addEventListener('focusout',e=>log('focusout '+tag(e.target)),true);
-  /* スクロールは、始まりから止まるまでをひとまとめにして記録する（少しずつ動くスクロールも分かるように） */
-  window.addEventListener('scroll',()=>{ const y=window.scrollY;
-    if(!run){ run={from:lastY,t:Date.now(),n:0}; }
-    run.n++; lastY=y; clearTimeout(runT);
-    runT=setTimeout(()=>{ const d=Math.round(lastY-run.from); log('SCROLL '+Math.round(run.from)+' → '+Math.round(lastY)+'（'+run.n+'回・'+(Date.now()-run.t-200)+'ms）'+(Math.abs(d)>300?' ★':'')+(lastY<30?' ◆いちばん上':'')); run=null; },200);
-  },{passive:true});
-  const b=document.createElement('button'); b.textContent='記録'; b.type='button';
-  b.style.cssText='position:fixed;left:8px;bottom:8px;z-index:99999;font-size:12px;padding:6px 10px;border-radius:6px;border:1px solid #999;background:#fff;color:#000;opacity:.8';
-  b.addEventListener('click',()=>{
-    const txt='【動作記録】\n'+navigator.userAgent+'\n'+L.join('\n');
-    const w=document.createElement('div'); w.style.cssText='position:fixed;inset:20px;z-index:100000;background:#fff;color:#000;border:1px solid #999;border-radius:8px;display:flex;flex-direction:column;padding:10px;gap:8px';
-    const ta=document.createElement('textarea'); ta.value=txt; ta.style.cssText='flex:1;font:11px/1.4 monospace;'; ta.readOnly=true;
-    const row=document.createElement('div'); const c=document.createElement('button'); c.textContent='すべてコピー'; const x=document.createElement('button'); x.textContent='閉じる'; const k=document.createElement('button'); k.textContent='記録を消す';
-    [c,x,k].forEach(q=>{ q.type='button'; q.style.cssText='font-size:14px;padding:6px 12px;margin-right:8px'; row.appendChild(q); });
-    c.onclick=()=>{ ta.select(); try{ navigator.clipboard.writeText(txt).then(()=>c.textContent='コピーしました',()=>{ document.execCommand('copy'); c.textContent='コピーしました'; }); }catch(e){ document.execCommand('copy'); } };
-    x.onclick=()=>w.remove(); k.onclick=()=>{ L.length=0; w.remove(); };
-    w.appendChild(row); w.appendChild(ta); document.body.appendChild(w);
-  });
-  addEventListener('load',()=>document.body.appendChild(b));
-  log('start');
-})();
-</script>
 <script>try{ const t=localStorage.getItem('genko-theme'); if(t==='light'||t==='dark') document.documentElement.setAttribute('data-theme',t); if(localStorage.getItem('genko-font')==='gothic') document.documentElement.classList.add('gothic'); if(localStorage.getItem('genko-weight')==='regular') document.documentElement.classList.add('wregular'); if(localStorage.getItem('genko-focus')==='1') document.documentElement.classList.add('focus'); }catch(e){}</script>
 <header class="bar">
   <input id="title" type="text" placeholder="題名（未設定）" autocomplete="off" spellcheck="false" aria-label="題名">
@@ -592,7 +561,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 1.05</div>
+    <div class="small">Version 1.06</div>
   </div>
 </div>
 <div class="scrim" id="histPanel" hidden>
