@@ -227,11 +227,12 @@ html.focus .bar,html.focus #outline{display:none}
 #bFocusOff:hover{opacity:1}
 #bFocusOff svg{width:18px;height:18px}
 html.focus #bFocusOff{display:inline-flex}
-/* iPadOS 26 以降のホーム画面のアプリでは、画面の上端に固定された無地の帯がないと、上端の内容がぼかされる。
-   集中モードではツールバーを隠すので、代わりに上端へ帯を置く（背景の色は読み取らせるが、文字がないので何も描かれない） */
-#edgeBand{display:none;position:fixed;top:0;left:0;right:0;height:12px;z-index:2147483647;pointer-events:none;
-  background-color:var(--desk);-webkit-background-clip:text;background-clip:text;color:transparent}
-html.focus #edgeBand{display:block}
+/* iPadOS 26 以降のホーム画面のアプリでは、画面の最上部に無地の帯がないと、上端に来た内容がぼかされる。
+   集中モードではツールバーを隠すので、iPadでは代わりに最上部へ無地の帯を置き、原稿はその下から表示する */
+#edgeBand{display:none;position:fixed;top:0;left:0;right:0;height:max(16px,env(safe-area-inset-top,0px));z-index:40;pointer-events:none;background:var(--desk)}
+html.focus.ipad #edgeBand{display:block}
+html.focus.ipad .layout{padding-top:16px}
+html.focus.ipad #bFocusOff{top:calc(max(16px,env(safe-area-inset-top,0px)) + 8px)}
 /* 柱番号：柱の「○」の上の余白に、柱一覧と同じ番号を表示する */
 .hno{position:absolute;width:var(--cell);right:calc(var(--padx,var(--pad)) + var(--c)*var(--step));top:calc(var(--pad) - var(--cell)*.78);
   text-align:center;font-family:var(--f-ui);font-size:max(9px,calc(var(--cell)*.38));line-height:1;color:var(--ink);font-variant-numeric:tabular-nums;pointer-events:none;white-space:nowrap}
@@ -553,7 +554,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 0.98</div>
+    <div class="small">Version 0.99</div>
   </div>
 </div>
 <div class="scrim" id="histPanel" hidden>
@@ -1167,6 +1168,8 @@ function buildParas(){
   }
   return out;
 }
+/* 画面の上端（ツールバーの下端。集中モードのiPadでは最上部の帯の下端） */
+function topEdge(){ const b=document.querySelector('.bar').getBoundingClientRect().bottom, e=document.getElementById('edgeBand'); return Math.max(b,e&&getComputedStyle(e).display!=='none'?e.getBoundingClientRect().bottom:0); }
 const colOf=i=>(i<doc.length&&doc[i]!=='\n'&&L.slot[i])?L.slot[i].c:L.endMap[i];
 function posLabel(c){
   if(c<L.mainCol){ if(L.cv&&c<PER) return `表紙 ${c%PER+1}行`; const t=types[L.cols[c].p]; return `${t==='synhead'||t==='syn'?'あらすじ':'登場人物表'} ${c%PER+1}行`; }
@@ -1192,7 +1195,7 @@ try{
 function resize(){
   const root=document.documentElement;
   const avail=sheets.clientWidth;
-  const barH=document.querySelector('.bar').offsetHeight;
+  const eb=document.getElementById('edgeBand'), barH=Math.max(document.querySelector('.bar').offsetHeight,eb&&getComputedStyle(eb).display!=='none'?eb.offsetHeight:0);
   root.style.setProperty('--barh',barH+'px');
   const byW=avail/(2+1.22*19+1);
   const byH=(viewH()-barH-24)/23;   /* ページの高さ＝余白1マス＋20行＋ぶら下げ・ページ番号2マス */
@@ -1211,7 +1214,7 @@ function resize(){
 function showCaretPage(){
   if(!L||!pages.length) return;
   const {c}=caretCR(); const pg=pages[Math.floor(c/PER)]; if(!pg) return;
-  const barB=document.querySelector('.bar').getBoundingClientRect().bottom;
+  const barB=topEdge();
   window.scrollBy(0,pg.el.getBoundingClientRect().top-barB-10);
 }
 
@@ -1386,7 +1389,7 @@ function updateStats(){
   $('sPos').textContent=r?`${countChars(doc.slice(r[0],r[1])).toLocaleString('ja-JP')}字を選択中`:posLabel(c);
 }
 function scrollToCaret(){
-  const top=document.querySelector('.bar').getBoundingClientRect().bottom+8;
+  const top=topEdge()+8;
   const vv=window.visualViewport;
   const bottom=(vv?vv.height+vv.offsetTop:window.innerHeight)-24;
   /* カーソルのあるページがまるごと見える位置に合わせる */
@@ -2126,7 +2129,7 @@ let lastPt=null, scrollRaf=0;
 function dragScroll(){
   scrollRaf=0;
   if(!dragging||!lastPt) return;
-  const top=document.querySelector('.bar').getBoundingClientRect().bottom, bottom=window.innerHeight;
+  const top=topEdge(), bottom=window.innerHeight;
   let dy=0;
   if(lastPt.y<top+24) dy=-Math.max(4,(top+24-lastPt.y)/2);
   else if(lastPt.y>bottom-24) dy=Math.max(4,(lastPt.y-bottom+24)/2);
@@ -2462,7 +2465,7 @@ function setFocusMode(on){
   document.documentElement.classList.toggle('focus',on);
   try{ localStorage.setItem('genko-focus',on?'1':''); }catch(e){}
   resize(); render();
-  if(pages[k]){ const barB=document.querySelector('.bar').getBoundingClientRect().bottom; window.scrollBy(0,pages[k].el.getBoundingClientRect().top-barB-10); }
+  if(pages[k]){ const barB=topEdge(); window.scrollBy(0,pages[k].el.getBoundingClientRect().top-barB-10); }
   updPageNav(); ta.focus({preventScroll:true});
 }
 $('bFocus').addEventListener('click',()=>setFocusMode(true));
@@ -2538,7 +2541,7 @@ $('cmpPanel').addEventListener('click',e=>{
 });
 /* ページ送り：いま画面に出ているページから、1ページ・10ページ単位で前後のページへ移る（カーソルは動かさない） */
 function curPageIdx(){
-  const barB=document.querySelector('.bar').getBoundingClientRect().bottom;
+  const barB=topEdge();
   let best=0, d=Infinity;
   pages.forEach((pg,k)=>{ const t=Math.abs(pg.el.getBoundingClientRect().top-barB-10); if(t<d){ d=t; best=k; } });
   return best;
@@ -2546,7 +2549,7 @@ function curPageIdx(){
 function goPage(delta){
   if(!pages.length) return;
   const k=Math.max(0,Math.min(pages.length-1,curPageIdx()+delta));
-  const barB=document.querySelector('.bar').getBoundingClientRect().bottom;
+  const barB=topEdge();
   window.scrollBy(0,pages[k].el.getBoundingClientRect().top-barB-10);
   updPageNav();
 }
