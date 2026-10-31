@@ -239,7 +239,7 @@ html.ipad #ta{writing-mode:vertical-rl;line-height:var(--step);color:var(--ink);
 html.ipad #caret{display:none}
 #ta.clip{color:transparent!important}
 html.ipad #ta.composing{background:var(--paper);color:var(--ink)}
-#ime{position:absolute;z-index:7;min-width:var(--cell);writing-mode:vertical-rl;text-orientation:mixed;white-space:pre;pointer-events:none;
+#ime{position:absolute;z-index:7;min-width:var(--cell);writing-mode:vertical-rl;text-orientation:mixed;white-space:pre-wrap;line-break:anywhere;word-break:break-all;pointer-events:none;
   font-family:var(--f-ms);font-weight:var(--f-w);font-size:calc(var(--cell)*.78*var(--fs,1));line-height:var(--cell);letter-spacing:calc(var(--cell) - var(--cell)*.78*var(--fs,1));
   background:var(--paper);color:var(--ink);border-radius:2px;text-decoration:underline;text-decoration-color:var(--accent)}
 
@@ -468,7 +468,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 0.78</div>
+    <div class="small">Version 0.79</div>
   </div>
 </div>
 <div class="scrim" id="lookPanel" hidden>
@@ -1203,6 +1203,20 @@ function fitTA(){
   const h=Math.min(taBox.maxH,(Math.min(n,per)+0.4)*G.cell);
   ta.style.left=(taBox.right-w)+'px'; ta.style.width=w+'px'; ta.style.height=h+'px';
 }
+/* Mac：変換中の文字は、カーソルのマスから下に並べ、その行の20マス目に届いたら左の行へ折り返す（ページの下にはみ出さないように）。
+   入力欄は変換中の文字の最後のマスに重ね、変換候補がその近くに出るようにする */
+let imeAt=null;
+function layoutIme(){
+  const im=document.getElementById('ime'); if(IPAD||!imeAt||!G||!im) return;
+  const {x,y,r}=imeAt, rem=Math.max(2,ROWS-r);
+  const rightEdge=x+G.cell+(G.step-G.cell)/2;
+  im.style.top=y+'px'; im.style.height=(rem*G.cell+0.5)+'px'; im.style.lineHeight=G.step+'px';
+  const n=im.hidden?0:[...im.textContent].length;
+  if(!n){ im.style.left=(rightEdge-G.step)+'px'; return; }
+  const cols=Math.ceil(n/rem), k=cols-1, row=n-1-k*rem;
+  im.style.left=(rightEdge-cols*G.step)+'px';
+  if(composing){ ta.style.left=(x-k*G.step)+'px'; ta.style.top=(y+row*G.cell)+'px'; }
+}
 function placeCaret(){
   if(!L||!G||!pages.length) return;
   caretEl.hidden=!!selRange();
@@ -1218,7 +1232,7 @@ function placeCaret(){
     /* Mac：入力欄は横書きでカーソルのマスに重ねる（変換中の文字は原稿上の枠に表示） */
     ta.style.left=x+'px'; ta.style.top=y+'px'; ta.style.width=Math.max(48,G.cell*2)+'px'; ta.style.height=Math.max(24,G.cell)+'px';
   }
-  const ime=document.getElementById('ime'); if(ime){ ime.style.left=x+'px'; ime.style.top=y+'px'; }
+  imeAt={x,y,r}; layoutIme();
 }
 function spanBoxes(ranges){
   const spans={};
@@ -1784,7 +1798,7 @@ function showIme(data){
   let t=data||'';
   const v=ta.value;
   if(v.startsWith(lastVal)){ const rest=v.slice(lastVal.length); if(rest.length>=t.length) t=rest; }
-  imeEl.textContent=t; imeEl.hidden=!t;
+  imeEl.textContent=t; imeEl.hidden=!t; layoutIme();
 }
 ta.addEventListener('input',e=>{
   if(syncWait&&!composing){ resetTA(); return; }
