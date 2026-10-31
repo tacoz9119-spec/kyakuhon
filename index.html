@@ -122,6 +122,15 @@ main{flex:1 1 auto;min-width:0;padding-left:max(16px,env(safe-area-inset-left,0p
 #olList .t{font-family:var(--f-ui);font-size:1em;line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-all}
 #olList .m{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
 #olList li.cur button{background:var(--desk)}
+#olList{position:relative}
+#olList li{display:flex;align-items:stretch}
+#olList li>button[data-i]{flex:1 1 auto;min-width:0}
+#olList .grip{flex:0 0 26px;display:flex;align-items:center;justify-content:center;color:var(--muted);cursor:grab;touch-action:none;border-radius:6px;opacity:.55}
+#olList li:hover .grip,#olList li.cur .grip{opacity:1}
+#olList .grip:active{cursor:grabbing}
+#olList li.dragging{opacity:.45}
+#olList .dropline{position:absolute;left:0;right:0;height:2px;background:var(--accent);border-radius:1px;pointer-events:none}
+
 #olList li.cur .t{font-weight:600}
 #olList li.cur .n{color:var(--accent);font-weight:700}
 #pplList li{display:flex;flex-direction:column;gap:3px;padding:4px 0;border-bottom:1px solid var(--edge)}
@@ -210,6 +219,17 @@ html.nolint #lint{display:none}
 .pno{position:absolute;left:0;right:0;text-align:center;top:calc(var(--pad) + var(--cell)*20.9);
   font-size:max(11px,calc(var(--cell)*.4));color:var(--muted);font-variant-numeric:tabular-nums}
 
+/* 集中モード：ツールバーと左パネルを隠し、原稿だけを表示する */
+html.focus .bar,html.focus #outline{display:none}
+#bFocusOff{display:none;position:fixed;z-index:30;top:calc(env(safe-area-inset-top,0px) + 10px);right:calc(env(safe-area-inset-right,0px) + 12px);
+  width:38px;height:38px;align-items:center;justify-content:center;padding:0;border:1px solid var(--edge);border-radius:8px;
+  background:var(--paper);color:var(--ink);opacity:.55;cursor:pointer;touch-action:manipulation}
+#bFocusOff:hover{opacity:1}
+#bFocusOff svg{width:18px;height:18px}
+html.focus #bFocusOff{display:inline-flex}
+/* 柱番号：柱の「○」の上の余白に、柱一覧と同じ番号を表示する */
+.hno{position:absolute;width:var(--cell);right:calc(var(--padx,var(--pad)) + var(--c)*var(--step));top:calc(var(--pad) - var(--cell)*.78);
+  text-align:center;font-family:var(--f-ui);font-size:max(9px,calc(var(--cell)*.38));line-height:1;color:var(--ink);font-variant-numeric:tabular-nums;pointer-events:none;white-space:nowrap}
 .ch{position:absolute;width:var(--cell);height:var(--cell);
   right:calc(var(--padx,var(--pad)) + var(--c)*var(--step));top:calc(var(--pad) + var(--r)*var(--cell));
   writing-mode:vertical-rl;text-orientation:mixed;display:flex;align-items:center;justify-content:center;
@@ -323,7 +343,7 @@ html.nogrid .col,html.nogrid .frame{display:none}
   .tools button.pg{min-width:34px;padding:0 5px}
   .sep{margin:6px 2px}
 }
-@media (max-width:1100px){ #title{flex-basis:20vw} }
+@media (max-width:1100px){ #title{flex-basis:16vw} }
 html.syncwait .tools,html.syncwait main,html.syncwait #outline{pointer-events:none}
 html.syncwait main{opacity:.55;transition:opacity .2s .4s}
 /* メモの箱は、パネルの残りの高さいっぱいに広げる（画面の大きさに合わせて伸び縮み） */
@@ -342,7 +362,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
 <script>if('serviceWorker' in navigator){ addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{})); }</script>
 </head>
 <body>
-<script>try{ const t=localStorage.getItem('genko-theme'); if(t==='light'||t==='dark') document.documentElement.setAttribute('data-theme',t); if(localStorage.getItem('genko-font')==='gothic') document.documentElement.classList.add('gothic'); if(localStorage.getItem('genko-weight')==='regular') document.documentElement.classList.add('wregular'); }catch(e){}</script>
+<script>try{ const t=localStorage.getItem('genko-theme'); if(t==='light'||t==='dark') document.documentElement.setAttribute('data-theme',t); if(localStorage.getItem('genko-font')==='gothic') document.documentElement.classList.add('gothic'); if(localStorage.getItem('genko-weight')==='regular') document.documentElement.classList.add('wregular'); if(localStorage.getItem('genko-focus')==='1') document.documentElement.classList.add('focus'); }catch(e){}</script>
 <header class="bar">
   <input id="title" type="text" placeholder="題名（未設定）" autocomplete="off" spellcheck="false" aria-label="題名">
   <div class="tools" id="tools">
@@ -363,6 +383,8 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
     <button id="pgUp10" class="ico pg" type="button" aria-label="10ページ戻る" title="10ページ戻る"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 12 6-6 6 6"/><path d="m6 18 6-6 6 6"/></svg></button>
     <button id="pgDn1" class="ico pg" type="button" aria-label="1ページ進む" title="1ページ進む"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
     <button id="pgDn10" class="ico pg" type="button" aria-label="10ページ進む" title="10ページ進む"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 6 6 6 6-6"/><path d="m6 12 6 6 6-6"/></svg></button>
+    <span class="sep"></span>
+    <button id="bFocus" class="ico" type="button" aria-label="集中モード（原稿だけを表示）" title="集中モード（原稿だけを表示）"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg></button>
   </div>
   <div class="stats" aria-live="polite">
     <span>本文<b id="sPages">1</b>枚・<b id="sChars">0</b>字・<b id="sPos">1枚目 1行</b></span>
@@ -443,6 +465,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
 </main>
 </div>
 
+<button id="bFocusOff" type="button" aria-label="集中モードを終える" title="集中モードを終える"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4"/><path d="M15 4v5h5"/><path d="M9 20v-5H4"/><path d="M15 20v-5h5"/></svg></button>
 <div class="scrim" id="docsPanel" hidden>
   <div class="panel" role="dialog" aria-labelledby="docsTitle">
     <div class="phead"><h2 id="docsTitle">その他</h2><button id="pClose" type="button">閉じる</button></div>
@@ -454,6 +477,10 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
         <button id="pCopy" type="button">本文をコピー</button>
       </div>
       <div class="small">PDFはA4横・1ページ400字で、柱・ト書き・セリフの字下げを保ち、罫線なしで出力します。テキストでは、ルビを「親文字（よみ）」の形にします。iPadでは共有メニューが開くので、「“ファイル”に保存」などを選んでください。</div>
+    </div>
+    <div class="pgroup">
+      <h3>柱（この原稿）</h3>
+      <label class="chk"><input type="checkbox" id="pHnum"> 柱の上に番号を付ける（画面とPDF。柱一覧と同じ番号）</label>
     </div>
     <div class="pgroup">
       <h3>表紙・登場人物表・あらすじ（この原稿）</h3>
@@ -510,7 +537,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 0.91</div>
+    <div class="small">Version 0.95</div>
   </div>
 </div>
 <div class="scrim" id="histPanel" hidden>
@@ -1214,11 +1241,13 @@ function render(){
   const n=Math.max(1,Math.ceil(L.cols.length/PER));
   while(pages.length<n) pages.push(makePage());
   while(pages.length>n) pages.pop().el.remove();
+  const hnOn=!!notes.hnum, hnum={}; if(hnOn){ let k=0; L.cols.forEach((c,i)=>{ if(c.mark&&c.p>=L.frontEnd) hnum[i]=++k; }); }
   for(let p=0;p<n;p++){
     let html='', sig='';
     for(let lc=0;lc<PER;lc++){
       const col=L.cols[p*PER+lc]; if(!col) break;
       if(col.mark){ html+=`<span class="ch" style="--c:${lc};--r:0">○</span>`; sig+='\u0002'; }
+      if(hnum[p*PER+lc]){ html+=`<span class="hno" style="--c:${lc}">${hnum[p*PER+lc]}</span>`; sig+='\u0005'+hnum[p*PER+lc]; }
       const red=p===0&&lc===0&&L.cv&&notes.coverRed?' red':'';   /* 表紙のいちばん右の行を朱書にする */
       for(const x of col.cells){
         if(x.n>1) html+=`<span class="ch tcy${red}" style="--c:${lc};--r:${x.r};--sx:${x.n===2?1:x.n===3?.72:.56}"><span>${esc(x.ch)}</span></span>`;
@@ -1372,7 +1401,7 @@ function updatePanels(){
     olSig=sig; olItems=items;
     $('olCount').textContent=items.length?items.length+'場面':'';
     $('olList').innerHTML=items.map((x,k)=>{
-      return `<li><button type="button" data-i="${x.i}"><span class="n">${k+1}</span><span class="t">${esc(x.text||'（柱の文言なし）')}</span><span class="m">${posLabel(x.c)}・${(x.len/PER).toFixed(1)}枚</span></button></li>`;
+      return `<li><button type="button" data-i="${x.i}"><span class="n">${k+1}</span><span class="t">${esc(x.text||'（柱の文言なし）')}</span><span class="m">${posLabel(x.c)}・${(x.len/PER).toFixed(1)}枚</span></button><span class="grip" title="ドラッグして場面を並べ替える" aria-label="場面を並べ替える"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span></li>`;
     }).join('');
     $('olEmpty').hidden=items.length>0;
   }
@@ -2133,7 +2162,7 @@ titleIn.addEventListener('input',()=>{ title=titleIn.value; markDirty(); saveCac
 const fmtDate=t=>{ if(!t) return ''; const d=new Date(t); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`; };
 function refreshPanel(){ if(!$('docsPanel').hidden) renderList(); }
 function renderList(){
-  const F=fronts(); $('pCover').checked=cover; $('pCoverRed').checked=!!notes.coverRed; $('pCoverRed').disabled=!cover; $('pCast').checked=!!F.cast; $('pSyn').checked=!!F.syn;
+  const F=fronts(); $('pHnum').checked=!!notes.hnum; $('pCover').checked=cover; $('pCoverRed').checked=!!notes.coverRed; $('pCoverRed').disabled=!cover; $('pCast').checked=!!F.cast; $('pSyn').checked=!!F.syn;
   /* 同期 */
   $('syncOff').hidden=!!CFG; $('syncOut').hidden=!CFG||!!uid; $('syncIn').hidden=!CFG||!uid;
   if(uid){ $('syEmail').textContent=userEmail; $('syLast').textContent=lastSync?fmtDate(lastSync):'まだ同期していません'; }
@@ -2353,6 +2382,64 @@ function castFromBox(v){
   anchor=null;
   return true;
 }
+/* 場面の並べ替え：柱一覧のつまみをドラッグすると、柱から次の柱の手前までを丸ごと移す */
+function moveScene(k,t){
+  const items=olItems, n=items.length; if(k<0||k>=n||t===k||t===k+1) return;
+  const paras=doc.join('').split('\n');
+  const E=(types.length>1&&paras[paras.length-1]==='')?types.length-1:types.length;   /* 末尾の空の行は動かさない */
+  const a=items[k].p, b=k+1<n?items[k+1].p:E;
+  let dest=t<n?items[t].p:E;
+  snapshot('struct'); lastKind='';
+  const bp=paras.splice(a,b-a), bt=types.splice(a,b-a), bi=pids.splice(a,b-a);
+  if(dest>a) dest-=b-a;
+  paras.splice(dest,0,...bp); types.splice(dest,0,...bt); pids.splice(dest,0,...bi);
+  doc=[...paras.join('\n')]; anchor=null; fixTypes();
+  caret=paraStart(dest); render(); showCaretPage();
+  toast('「'+(items[k].text||'柱')+'」の場面を移しました（「元に戻す」で戻せます）',3500);
+}
+{
+  let drag=null;
+  const list=$('olList');
+  const scroller=el=>{ for(let e=el;e;e=e.parentElement){ const o=getComputedStyle(e).overflowY; if((o==='auto'||o==='scroll')&&e.scrollHeight>e.clientHeight) return e; } return null; };
+  const targetAt=y=>{ const lis=[...list.children]; for(let j=0;j<lis.length;j++){ const r=lis[j].getBoundingClientRect(); if(y<r.top+r.height/2) return j; } return lis.length; };
+  const placeLine=t=>{ const lis=[...list.children], lr=list.getBoundingClientRect();
+    const y=t<lis.length?lis[t].getBoundingClientRect().top:lis[lis.length-1].getBoundingClientRect().bottom;
+    drag.line.style.top=(y-lr.top-1)+'px'; };
+  list.addEventListener('pointerdown',e=>{
+    const g=e.target.closest('.grip'); if(!g) return;
+    e.preventDefault(); e.stopPropagation();
+    const li=g.closest('li'), k=[...list.children].indexOf(li); if(k<0) return;
+    const line=document.createElement('div'); line.className='dropline'; list.appendChild(line);
+    drag={k,t:k,li,line,id:e.pointerId,sc:scroller(list),y:e.clientY};
+    li.classList.add('dragging'); g.setPointerCapture(e.pointerId); placeLine(k);
+  });
+  list.addEventListener('pointermove',e=>{
+    if(!drag||e.pointerId!==drag.id) return;
+    drag.y=e.clientY; drag.t=targetAt(e.clientY); placeLine(drag.t);
+    /* 一覧の上下の端に近づいたら、一覧をスクロールする */
+    if(drag.sc){ const r=drag.sc.getBoundingClientRect(); if(e.clientY<r.top+30) drag.sc.scrollTop-=12; else if(e.clientY>r.bottom-30) drag.sc.scrollTop+=12; }
+  });
+  const end=e=>{
+    if(!drag||e.pointerId!==drag.id) return;
+    const d=drag; drag=null; d.li.classList.remove('dragging'); d.line.remove();
+    if(e.type==='pointerup') moveScene(d.k,d.t);
+  };
+  list.addEventListener('pointerup',end); list.addEventListener('pointercancel',end);
+  list.addEventListener('click',e=>{ if(e.target.closest('.grip')){ e.preventDefault(); e.stopPropagation(); } },true);
+}
+/* 集中モード（この端末に記憶） */
+function setFocusMode(on){
+  document.documentElement.classList.toggle('focus',on);
+  try{ localStorage.setItem('genko-focus',on?'1':''); }catch(e){}
+  resize(); render(); showCaretPage(); ta.focus({preventScroll:true});
+}
+$('bFocus').addEventListener('click',()=>setFocusMode(true));
+$('bFocusOff').addEventListener('click',()=>setFocusMode(false));
+$('bFocusOff').addEventListener('pointerdown',e=>e.preventDefault());
+$('bFocus').addEventListener('pointerdown',e=>e.preventDefault());
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.documentElement.classList.contains('focus')&&[...document.querySelectorAll('.scrim')].every(s=>s.hidden)) setFocusMode(false); });
+/* 柱番号（この原稿） */
+$('pHnum').addEventListener('change',()=>{ if($('pHnum').checked) notes.hnum='1'; else delete notes.hnum; changed=true; markDirty(); render(); });
 /* ページ送り：いま画面に出ているページから、1ページ・10ページ単位で前後のページへ移る（カーソルは動かさない） */
 function curPageIdx(){
   const barB=document.querySelector('.bar').getBoundingClientRect().bottom;
@@ -2555,6 +2642,7 @@ function buildPdf(){
     colsT.forEach((cc,j)=>cc.forEach((ch,r)=>{ if(ch!==' '&&ch!=='　') drawCh(ch,x0-j*tstep-tcs,y0+r*tcs,tcs); }));
   };
   const LL=layout(doc,{print:true}), cols=LL.cols, n=Math.max(1,Math.ceil(cols.length/PER));
+  const hnum={}; if(notes.hnum){ let k=0; cols.forEach((c,i)=>{ if(c.mark&&c.p>=LL.frontEnd) hnum[i]=++k; }); }
   for(let p=0;p<n;p++){
     newPage();
     if(p===0&&LL.cv) drawCoverTitle();   /* 表紙の右端・左端の行は、本文と同じように下で出力する */
@@ -2562,6 +2650,7 @@ function buildPdf(){
       const col=cols[p*PER+lc]; if(!col) break;
       const x=right-lc*step-cs;
       if(col.mark) drawCh('○',x,top,cs);
+      if(hnum[p*PER+lc]){ pdf.setFontSize(10); pdf.text(String(hnum[p*PER+lc]),x+cs/2,top-cs*0.45,{align:'center'}); }   /* 柱番号：○の上の余白に */
       const red=p===0&&lc===0&&LL.cv&&notes.coverRed;   /* 表紙のいちばん右の行を朱書にする */
       if(red) pdf.setTextColor(200,40,30);
       for(const c of col.cells){ if(c.n>1) drawTcy(c.ch,x,top+c.r*cs,cs); else if(c.ch!==' '&&c.ch!=='　') drawCh(c.ch,x,top+c.r*cs,cs); }
