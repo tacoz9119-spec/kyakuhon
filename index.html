@@ -383,17 +383,24 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
 <script>
 /* 調査用の動作記録（一時的なもの）：画面が大きく飛んだときの直前の操作を記録する */
 (function(){
-  const L=[], t0=Date.now(); let lastY=window.scrollY;
+  const L=[], t0=Date.now(); let lastY=window.scrollY, run=null, runT=0, wheelOn=false, wheelT=0;
   const tag=e=>{ if(!e) return '-'; const el=e.nodeType===1?e:e.parentElement; if(!el) return '?'; return (el.id?'#'+el.id:el.tagName.toLowerCase()+(el.className&&typeof el.className==='string'?'.'+el.className.split(' ')[0]:''))+(el.closest&&el.closest('.bar')?'@bar':el.closest&&el.closest('#outline')?'@side':''); };
   const log=s=>{ L.push(((Date.now()-t0)/1000).toFixed(2)+' '+s); if(L.length>120) L.shift(); };
   const st=()=>{ try{ return (new Error().stack||'').split('\n').slice(2,5).map(x=>x.trim().replace(/https?:\/\/[^ )]*\//,'')).join(' < '); }catch(e){ return ''; } };
   ['scrollTo','scrollBy'].forEach(m=>{ const o=window[m].bind(window); window[m]=function(...a){ log(m+'('+JSON.stringify(a).slice(0,40)+') '+st()); return o(...a); }; });
   const osv=Element.prototype.scrollIntoView; Element.prototype.scrollIntoView=function(...a){ log('scrollIntoView '+tag(this)+' '+st()); return osv.apply(this,a); };
   const ofo=HTMLElement.prototype.focus; HTMLElement.prototype.focus=function(...a){ log('focus() '+tag(this)+' '+JSON.stringify(a[0]||{})+' '+st()); return ofo.apply(this,a); };
-  ['pointerdown','mousedown','click','pointerup'].forEach(ev=>document.addEventListener(ev,e=>log(ev+' '+(e.pointerType||'')+' '+tag(e.target)+(e.defaultPrevented?' (prevented)':'')),true));
+  ['pointerdown','mousedown','click','pointerup'].forEach(ev=>document.addEventListener(ev,e=>log(ev+' '+(e.pointerType||'')+' '+tag(e.target)+' y='+Math.round(e.clientY||0)+(e.defaultPrevented?' (prevented)':'')),true));
+  document.addEventListener('wheel',e=>{ if(!wheelOn){ wheelOn=true; log('wheel 開始 dy='+Math.round(e.deltaY)); } clearTimeout(wheelT); wheelT=setTimeout(()=>{ wheelOn=false; log('wheel 終了'); },300); },{passive:true,capture:true});
+  ['touchstart','touchend'].forEach(ev=>document.addEventListener(ev,e=>log(ev+' '+tag(e.target)+' y='+Math.round((e.changedTouches[0]||{}).clientY||0)),{passive:true,capture:true}));
   document.addEventListener('focusin',e=>log('focusin '+tag(e.target)),true);
   document.addEventListener('focusout',e=>log('focusout '+tag(e.target)),true);
-  window.addEventListener('scroll',()=>{ const y=window.scrollY; if(Math.abs(y-lastY)>200) log('SCROLL '+Math.round(lastY)+' → '+Math.round(y)+' ★'); lastY=y; },{passive:true});
+  /* スクロールは、始まりから止まるまでをひとまとめにして記録する（少しずつ動くスクロールも分かるように） */
+  window.addEventListener('scroll',()=>{ const y=window.scrollY;
+    if(!run){ run={from:lastY,t:Date.now(),n:0}; }
+    run.n++; lastY=y; clearTimeout(runT);
+    runT=setTimeout(()=>{ const d=Math.round(lastY-run.from); log('SCROLL '+Math.round(run.from)+' → '+Math.round(lastY)+'（'+run.n+'回・'+(Date.now()-run.t-200)+'ms）'+(Math.abs(d)>300?' ★':'')+(lastY<30?' ◆いちばん上':'')); run=null; },200);
+  },{passive:true});
   const b=document.createElement('button'); b.textContent='記録'; b.type='button';
   b.style.cssText='position:fixed;left:8px;bottom:8px;z-index:99999;font-size:12px;padding:6px 10px;border-radius:6px;border:1px solid #999;background:#fff;color:#000;opacity:.8';
   b.addEventListener('click',()=>{
@@ -585,7 +592,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 1.04</div>
+    <div class="small">Version 1.05</div>
   </div>
 </div>
 <div class="scrim" id="histPanel" hidden>
