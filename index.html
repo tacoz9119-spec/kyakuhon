@@ -224,12 +224,15 @@ html.nolint #lint{display:none}
 html.focus #outline{display:none}
 html.focus .bar{padding-block:0;height:14px;box-sizing:border-box;overflow:hidden}
 html.focus .bar>*{visibility:hidden}
-#bFocusOff{display:none;position:fixed;z-index:30;top:calc(env(safe-area-inset-top,0px) + 22px);right:calc(env(safe-area-inset-right,0px) + 12px);
+/* Mac ではこの問題が起きないので、ツールバーを帯ごと隠す */
+html.focus:not(.ipad) .bar{display:none}
+#bFocusOff{display:none;position:fixed;z-index:30;top:calc(env(safe-area-inset-top,0px) + 10px);right:calc(env(safe-area-inset-right,0px) + 12px);
   width:38px;height:38px;align-items:center;justify-content:center;padding:0;border:1px solid var(--edge);border-radius:8px;
   background:var(--paper);color:var(--ink);opacity:.55;cursor:pointer;touch-action:manipulation}
 #bFocusOff:hover{opacity:1}
 #bFocusOff svg{width:18px;height:18px}
 html.focus #bFocusOff{display:inline-flex}
+html.focus.ipad #bFocusOff{top:calc(env(safe-area-inset-top,0px) + 22px)}
 
 html.focus.ipad #bFocusOff{top:calc(max(16px,env(safe-area-inset-top,0px)) + 8px)}
 /* 柱番号：柱の「○」の上の余白に、柱一覧と同じ番号を表示する */
@@ -552,7 +555,7 @@ html.syncwait main{opacity:.55;transition:opacity .2s .4s}
       <div class="small">メモや表紙の設定も含めて、すべての原稿を1つのファイル（.json）に保存します。読み込むと、原稿が追加されます（同じ内容の原稿は追加しません）。</div>
     </div>
     <div class="small">画面とPDFの書体：Noto Serif JP・Noto Sans JP（SIL Open Font License 1.1）</div>
-    <div class="small">Version 1.00</div>
+    <div class="small">Version 1.01</div>
   </div>
 </div>
 <div class="scrim" id="histPanel" hidden>
